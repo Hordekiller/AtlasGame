@@ -1,0 +1,30 @@
+[gd_scene load_steps=2 format=3 uid="uid://diyg5q24ad3l3"]
+
+[ext_resource type="Script" path="res://Scenes/Game/BuildingPalette.gd" id="1_exn43"]
+
+[node name="BuildingPalette" type="Panel"]
+layout_mode = 0
+offset_left = 10
+offset_top = 90
+offset_right = 210
+offset_bottom = 550
+color = Color(0, 0, 0, 0.7)
+script = ExtResource("1_exn43")
+
+[node name="CategoryButtons" type="HBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 5
+offset_top = 5
+offset_right = 200
+offset_bottom = 35
+
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
+layout_mode = 0
+offset_left = 5
+offset_top = 40
+offset_right = 200
+offset_bottom = 460
+
+[node name="BuildingList" type="VBoxContainer" parent="ScrollContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4

@@ -1,0 +1,50 @@
+[gd_scene format=3 uid="uid://cl67yq6fc3rwj"]
+
+[ext_resource type="Script" path="res://Scenes/Game/ColonizeDialog.gd" id="1_68f1p"]
+
+[node name="ColonizeDialog" type="Panel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -175.0
+offset_top = -100.0
+offset_right = 175.0
+offset_bottom = 100.0
+color = Color(0.1, 0.1, 0.15, 0.95)
+script = ExtResource("1_68f1p")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+text = "استعمار"
+
+[node name="CostLabel" type="Label" parent="VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+horizontal_alignment = 1
+text = ""
+
+[node name="CityNameInput" type="LineEdit" parent="VBox"]
+layout_mode = 2
+placeholder_text = "نام شهر"
+text = ""
+align = 1
+
+[node name="ColonizeBtn" type="Button" parent="VBox"]
+layout_mode = 2
+text = "استعمار کن"
+
+[node name="CancelBtn" type="Button" parent="VBox"]
+layout_mode = 2
+text = "لغو"

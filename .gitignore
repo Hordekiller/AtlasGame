@@ -1,0 +1,19 @@
+# Godot specific
+.godot/
+*.import
+import/
+export/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+env/

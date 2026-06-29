@@ -1,0 +1,27 @@
+[gd_scene load_steps=7 format=3 uid="uid://b6l6pnnmcmqfg"]
+
+[ext_resource type="Script" path="res://Scenes/Game/Game.gd" id="1_60gfu"]
+[ext_resource type="PackedScene" uid="uid://df0hjrpak16rv" path="res://Scenes/Game/CityView.tscn" id="2_03s6i"]
+[ext_resource type="PackedScene" uid="uid://dmhlk3sdfuh60" path="res://Scenes/Game/WorldMap.tscn" id="3_ys4d0"]
+[ext_resource type="PackedScene" uid="uid://egx7pfhe5qwk" path="res://Scenes/Game/HUD.tscn" id="4_4y3se"]
+[ext_resource type="PackedScene" uid="uid://c2vrgjhwxyecm" path="res://Scenes/Game/ResearchPanel.tscn" id="6_pudua"]
+[ext_resource type="PackedScene" uid="uid://cl67yq6fc3rwj" path="res://Scenes/Game/ColonizeDialog.tscn" id="7"]
+[ext_resource type="PackedScene" uid="uid://bf3vo5k7efqdq" path="res://Scenes/Game/TradePanel.tscn" id="8"]
+
+[node name="Game" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_60gfu")
+
+[node name="CityView" parent="." instance=ExtResource("2_03s6i")]
+visible = true
+
+[node name="WorldMap" parent="." instance=ExtResource("3_ys4d0")]
+visible = false
+
+[node name="HUD" parent="." instance=ExtResource("4_4y3se")]
+[node name="ResearchPanel" parent="." instance=ExtResource("6_pudua")]
+[node name="ColonizeDialog" parent="." instance=ExtResource("7")]
+[node name="TradePanel" parent="." instance=ExtResource("8")]

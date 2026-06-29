@@ -1,0 +1,129 @@
+[gd_scene load_steps=2 format=3 uid="uid://dh0wc067lojvp"]
+
+[ext_resource type="Script" path="res://Scenes/Menu/MainMenu.gd" id="1_g4oyt"]
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_g4oyt")
+
+[node name="BgTexture" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+stretch_mode = 2
+
+[node name="Overlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.05, 0.05, 0.1, 0.55)
+
+[node name="CenterBox" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -160.0
+offset_top = -200.0
+offset_right = 160.0
+offset_bottom = 200.0
+
+[node name="TitleBox" type="VBoxContainer" parent="CenterBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="TitleIcon" type="TextureRect" parent="CenterBox/TitleBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(80, 80)
+size_flags_horizontal = 4
+expand_mode = 1
+stretch_mode = 0
+
+[node name="TitleLabel" type="Label" parent="CenterBox/TitleBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+theme_override_colors/font_color = Color(0.9, 0.7, 0.2, 1)
+text = "GameMB"
+horizontal_alignment = 1
+
+[node name="SubtitleLabel" type="Label" parent="CenterBox/TitleBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 0.8)
+text = "یک جهان جدید در انتظار شماست"
+horizontal_alignment = 1
+
+[node name="VBox" type="VBoxContainer" parent="CenterBox"]
+layout_mode = 2
+offset_top = 20
+theme_override_constants/separation = 10
+
+[node name="NewGameBtn" type="Button" parent="CenterBox/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(220, 48)
+text = "شروع بازی جدید"
+horizontal_alignment = 1
+
+[node name="LoadGameBtn" type="Button" parent="CenterBox/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(220, 48)
+text = "ادامه بازی"
+horizontal_alignment = 1
+
+[node name="SettingsBtn" type="Button" parent="CenterBox/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(220, 48)
+text = "تنظیمات"
+horizontal_alignment = 1
+
+[node name="QuitBtn" type="Button" parent="CenterBox/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(220, 48)
+text = "خروج"
+horizontal_alignment = 1
+
+[node name="VersionLabel" type="Label" parent="."]
+layout_mode = 0
+anchors_preset = 12
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -120.0
+offset_top = -30.0
+offset_right = -10.0
+offset_bottom = -5.0
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 0.6)
+text = "v0.1.0"
+horizontal_alignment = 2
+
+[node name="DecorTop" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 0
+offset_top = 0
+offset_right = 1920
+offset_bottom = 8
+expand_mode = 1
+stretch_mode = 0
+
+[node name="DecorBottom" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 0
+offset_top = -8
+offset_right = 1920
+offset_bottom = 0
+expand_mode = 1
+stretch_mode = 0
+flip_v = true

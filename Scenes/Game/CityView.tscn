@@ -1,0 +1,23 @@
+[gd_scene load_steps=3 format=3 uid="uid://df0hjrpak16rv"]
+
+[ext_resource type="Script" path="res://Scenes/Game/CityView.gd" id="1_t5nra"]
+[ext_resource type="Texture2D" path="res://Assets/Textures/Environment/city_bg.jpg" id="2_m42ad"]
+[ext_resource type="Script" path="res://Scenes/Game/CitizenSystem.gd" id="3_awfcp"]
+
+[node name="CityView" type="Node2D"]
+script = ExtResource("1_t5nra")
+group = ["city_view"]
+
+[node name="CitizenSystem" type="Node2D" parent="."]
+script = ExtResource("3_awfcp")
+
+[node name="Bg" type="Sprite2D" parent="."]
+texture = ExtResource("2_m42ad")
+position = Vector2(512, 384)
+scale = Vector2(1.5, 1.2)
+z_index = -10
+modulate = Color(0.6, 0.6, 0.7, 0.8)
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(512, 384)
+zoom = Vector2(0.8, 0.8)
