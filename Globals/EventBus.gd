@@ -11,6 +11,7 @@ signal building_construct_complete(city_id: String, grid_pos: Vector2i, building
 signal city_created(city_id: String, city_name: String, island_id: String)
 signal research_completed(tech_id: String)
 signal research_started(tech_id: String, duration: float)
+signal research_progress(tech_id: String, progress: float, total: float)
 signal unit_trained(city_id: String, unit_type: String, count: int)
 signal battle_initiated(attacker_id: String, defender_id: String)
 signal battle_completed(battle_id: String, winner: String)

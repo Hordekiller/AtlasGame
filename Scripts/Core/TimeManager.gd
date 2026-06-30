@@ -42,6 +42,7 @@ func _tick() -> void:
 	EconomyManager.process_tick()
 	BuildingManager.process_tick()
 	ResearchManager.process_tick()
+	MilitaryManager.process_tick()
 
 func catch_up(offline_seconds: float) -> void:
 	if offline_seconds <= 0:

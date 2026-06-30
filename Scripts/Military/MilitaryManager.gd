@@ -409,6 +409,27 @@ const UNIT_DEFINITIONS = {
 	}
 }
 
+func process_tick() -> void:
+	for city_id in GameState.current_cities:
+		var city = GameState.current_cities[city_id]
+		var units = city.get("units", {})
+		for ut in units:
+			var unit_data = units[ut]
+			var training_count = unit_data.get("training", 0)
+			if training_count <= 0:
+				continue
+			var defn = UNIT_DEFINITIONS.get(ut)
+			if not defn:
+				continue
+			var train_time = defn.get("train_time", 10.0)
+			var progress = unit_data.get("training_progress", 0.0) + 1.0
+			unit_data["training_progress"] = progress
+			if progress >= train_time:
+				unit_data["training"] = training_count - 1
+				unit_data["count"] = unit_data.get("count", 0) + 1
+				unit_data["training_progress"] = 0.0
+				EventBus.unit_trained.emit(city_id, ut, 1)
+
 func get_unit_def(unit_type: String) -> Dictionary:
 	return UNIT_DEFINITIONS.get(unit_type, {}).duplicate(true)
 
@@ -444,8 +465,6 @@ func train_units(city_id: String, unit_type: String, count: int) -> bool:
 		city["units"][unit_type] = {"count": 0, "training": 0, "training_progress": 0.0}
 
 	city["units"][unit_type]["training"] += count
-
-	EventBus.unit_trained.emit(city_id, unit_type, count)
 	return true
 
 func get_army_strength(city_id: String) -> float:

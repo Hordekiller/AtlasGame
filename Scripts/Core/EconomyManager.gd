@@ -288,6 +288,8 @@ func process_tick() -> void:
 			var wine_available = resources.get(wine_rt, 0.0)
 			var wine_used = min(wine_needed, wine_available)
 			resources[wine_rt] = max(0.0, wine_available - wine_used)
+			if wine_used > 0:
+				EventBus.resource_changed.emit(city_id, str(wine_rt), resources[wine_rt], -wine_used)
 
 		# other resources with warehouse cap
 		var warehouse_cap = get_warehouse_capacity(city_id)
@@ -307,7 +309,20 @@ func process_tick() -> void:
 	GameStateManager.check_lose_conditions()
 
 func get_save_data() -> Dictionary:
-	return {}
+	var data = {}
+	for cid in GameState.current_cities:
+		var city = GameState.current_cities[cid]
+		data[cid] = {
+			"production": city.get("production", {}).duplicate(true),
+			"consumption": city.get("consumption", {}).duplicate(true),
+			"total_workers_used": city.get("total_workers_used", 0)
+		}
+	return data
 
-func load_save_data(_data: Dictionary) -> void:
-	pass
+func load_save_data(data: Dictionary) -> void:
+	for cid in data:
+		var city = GameState.current_cities.get(cid)
+		if city:
+			city["production"] = data[cid].get("production", {})
+			city["consumption"] = data[cid].get("consumption", {})
+			city["total_workers_used"] = data[cid].get("total_workers_used", 0)

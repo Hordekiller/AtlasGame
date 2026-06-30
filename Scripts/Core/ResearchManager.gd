@@ -481,6 +481,29 @@ func _load_research_tree() -> void:
 			"description": "ناو بالن‌بر - حمل واحدهای هوایی در دریا",
 			"prerequisites": ["balloon_bombing", "steam_armor"],
 			"effects": { "unlock_unit": "ship_balloon_carrier" }
+		},
+
+		## MISSING TECH — referenced by city_wall
+		"masonry": {
+			"name": "سنگ‌تراشی",
+			"category": Globals.TechCategory.ECONOMY,
+			"tier": 2,
+			"cost": 25,
+			"duration": 30.0,
+			"description": "دیوار شهر - دفاع بیشتر",
+			"prerequisites": ["fortification"],
+			"effects": { "unlock_building": "city_wall" }
+		},
+		## MISSING TECH — referenced by harbor_chain
+		"naval_engineering": {
+			"name": "مهندسی دریایی",
+			"category": Globals.TechCategory.NAVIGATION,
+			"tier": 3,
+			"cost": 60,
+			"duration": 60.0,
+			"description": "زنجیر بندر - مسدود کردن کشتی‌های دشمن",
+			"prerequisites": ["shipbuilding"],
+			"effects": { "unlock_building": "harbor_chain" }
 		}
 	}
 
@@ -558,9 +581,12 @@ func process_tick() -> void:
 		var academy_level = _get_academy_level(city)
 		var speed_bonus = 1.0 + academy_level * 0.1
 
-		city["research_progress"] = city.get("research_progress", 0.0) + speed_bonus
+		var progress = city.get("research_progress", 0.0) + speed_bonus
+		city["research_progress"] = progress
 
-		if city["research_progress"] >= city.get("research_duration", 30.0):
+		EventBus.research_progress.emit(in_progress, progress, city.get("research_duration", 30.0))
+
+		if progress >= city.get("research_duration", 30.0):
 			_complete_research(city_id, city, in_progress)
 
 func _get_academy_level(city: Dictionary) -> int:
@@ -580,14 +606,26 @@ func _complete_research(city_id: String, city: Dictionary, tech_id: String) -> v
 
 	var defn = _research_tree.get(tech_id, {})
 	var effects = defn.get("effects", {})
+
 	if effects.has("unlock_unit"):
-		var unit_id = effects["unlock_unit"]
-		if not GameState.current_units.has(unit_id):
-			GameState.current_units[unit_id] = {"count": 0, "unlocked": true}
-		if not city.has("unlocked_units"):
-			city["unlocked_units"] = []
-		if unit_id not in city["unlocked_units"]:
-			city["unlocked_units"].append(unit_id)
+		var raw = effects["unlock_unit"]
+		var unit_list = raw if typeof(raw) == TYPE_ARRAY else [raw]
+		for unit_id in unit_list:
+			if not GameState.current_units.has(unit_id):
+				GameState.current_units[unit_id] = {"count": 0, "unlocked": true}
+			if not city.has("unlocked_units"):
+				city["unlocked_units"] = []
+			if unit_id not in city["unlocked_units"]:
+				city["unlocked_units"].append(unit_id)
+
+	if effects.has("unlock_building"):
+		var raw = effects["unlock_building"]
+		var building_list = raw if typeof(raw) == TYPE_ARRAY else [raw]
+		for bid in building_list:
+			if not city.has("unlocked_buildings"):
+				city["unlocked_buildings"] = []
+			if bid not in city["unlocked_buildings"]:
+				city["unlocked_buildings"].append(bid)
 
 	EventBus.research_completed.emit(tech_id)
 
@@ -598,7 +636,9 @@ func get_save_data() -> Dictionary:
 		data[cid] = {
 			"research_in_progress": city.get("research_in_progress", ""),
 			"research_progress": city.get("research_progress", 0.0),
-			"research_completed": city.get("research_completed", [])
+			"research_completed": city.get("research_completed", []).duplicate(),
+			"unlocked_units": city.get("unlocked_units", []).duplicate(),
+			"unlocked_buildings": city.get("unlocked_buildings", []).duplicate()
 		}
 	return data
 
@@ -609,3 +649,5 @@ func load_save_data(data: Dictionary) -> void:
 			city["research_in_progress"] = data[cid].get("research_in_progress", "")
 			city["research_progress"] = data[cid].get("research_progress", 0.0)
 			city["research_completed"] = data[cid].get("research_completed", [])
+			city["unlocked_units"] = data[cid].get("unlocked_units", [])
+			city["unlocked_buildings"] = data[cid].get("unlocked_buildings", [])
