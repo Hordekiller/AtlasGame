@@ -77,6 +77,9 @@ GameStateManager="*res://Scripts/Systems/GameStateManager.gd"
 ArmyTravel="*res://Scripts/Systems/ArmyTravel.gd"
 NPCSystem="*res://Scripts/Systems/NPCSystem.gd"
 CrashHandler="*res://Scripts/Core/CrashHandler.gd"
+IAPManager="*res://Scripts/Systems/IAPManager.gd"
+RateDialog="*res://Scripts/Systems/RateDialog.gd"
+GestureHandler="*res://Scripts/Core/GestureHandler.gd"
 
 [display]
 
@@ -139,3 +142,11 @@ renderer/rendering_method="mobile"
 textures/vram_compression/import_etc2_astc=true
 environment/defaults/default_clear_color=Color(0.05, 0.05, 0.1, 1)
 renderer/anti_aliasing/quality=0
+renderer/anti_aliasing/use_msaa=false
+renderer/anti_aliasing/screen_space_aa=0
+renderer/quality/shadow_atlas/quadrant_0_subdiv=0
+renderer/quality/shadow_atlas/quadrant_1_subdiv=0
+renderer/quality/shadow_atlas/quadrant_2_subdiv=0
+renderer/quality/shadow_atlas/quadrant_3_subdiv=0
+renderer/quality/shadow_atlas/size=512
+renderer/quality/filters/heighmap_roughness=0
