@@ -848,6 +848,111 @@ func get_upgrade_time(building_id: String, current_level: int) -> float:
 	var base = TIER_BUILD_TIME.get(tier, 5.0)
 	return base * current_level * 0.8
 
+func get_building_value(city_id: String, building_id: String) -> int:
+	var defn = _building_definitions.get(building_id)
+	if not defn:
+		return 0
+	var cost = 0
+	for r in defn.get("costs", {}):
+		cost += defn["costs"][r]
+	return cost
+
+func get_max_spy_missions(city_id: String) -> int:
+	var city = GameState.current_cities.get(city_id)
+	if not city:
+		return 0
+	var total = 0
+	for pos in city.get("buildings", {}):
+		var b = city["buildings"][pos]
+		var defn = _building_definitions.get(b.get("id", ""))
+		if defn and b.get("constructed", false):
+			total += defn.get("max_spy_missions", 0) * b.get("level", 1)
+	return total
+
+func get_ship_speed_bonus(city_id: String) -> float:
+	var city = GameState.current_cities.get(city_id)
+	if not city:
+		return 0.0
+	var total = 0.0
+	for pos in city.get("buildings", {}):
+		var b = city["buildings"][pos]
+		var defn = _building_definitions.get(b.get("id", ""))
+		if defn and b.get("constructed", false):
+			total += defn.get("ship_speed_bonus_per_level", 0.0) * b.get("level", 1)
+	return total
+
+func get_pirate_attack_bonus(city_id: String) -> float:
+	var city = GameState.current_cities.get(city_id)
+	if not city:
+		return 0.0
+	var total = 0.0
+	for pos in city.get("buildings", {}):
+		var b = city["buildings"][pos]
+		var defn = _building_definitions.get(b.get("id", ""))
+		if defn and b.get("constructed", false):
+			total += defn.get("pirate_attack_bonus_per_level", 0.0) * b.get("level", 1)
+	return total
+
+func get_block_chance(city_id: String) -> float:
+	var city = GameState.current_cities.get(city_id)
+	if not city:
+		return 0.0
+	var total = 0.0
+	for pos in city.get("buildings", {}):
+		var b = city["buildings"][pos]
+		var defn = _building_definitions.get(b.get("id", ""))
+		if defn and b.get("constructed", false):
+			total += defn.get("block_chance_per_level", 0.0) * b.get("level", 1)
+	return clampf(total, 0.0, 100.0)
+
+func get_naval_damage(city_id: String) -> float:
+	var city = GameState.current_cities.get(city_id)
+	if not city:
+		return 0.0
+	var total = 0.0
+	for pos in city.get("buildings", {}):
+		var b = city["buildings"][pos]
+		var defn = _building_definitions.get(b.get("id", ""))
+		if defn and b.get("constructed", false):
+			total += defn.get("naval_damage_per_level", 0.0) * b.get("level", 1)
+	return total
+
+func get_protection_percent(city_id: String) -> float:
+	var city = GameState.current_cities.get(city_id)
+	if not city:
+		return 0.0
+	var total = 0.0
+	for pos in city.get("buildings", {}):
+		var b = city["buildings"][pos]
+		var defn = _building_definitions.get(b.get("id", ""))
+		if defn and b.get("constructed", false):
+			total += defn.get("protection_per_level", 0.0) * b.get("level", 1)
+	return clampf(total, 0.0, 100.0)
+
+func get_wall_defense_bonus(city_id: String) -> float:
+	var city = GameState.current_cities.get(city_id)
+	if not city:
+		return 0.0
+	var total = 0.0
+	for pos in city.get("buildings", {}):
+		var b = city["buildings"][pos]
+		var defn = _building_definitions.get(b.get("id", ""))
+		if defn and b.get("constructed", false):
+			total += defn.get("wall_defense_bonus_per_level", 0.0) * b.get("level", 1)
+	return total
+
+func get_sight_range(city_id: String) -> float:
+	var city = GameState.current_cities.get(city_id)
+	if not city:
+		return 0.0
+	var total = 50.0
+	for pos in city.get("buildings", {}):
+		var b = city["buildings"][pos]
+		var defn = _building_definitions.get(b.get("id", ""))
+		if defn and b.get("constructed", false):
+			total += defn.get("sight_range_per_level", 0.0) * b.get("level", 1)
+	return total
+
 func process_tick() -> void:
 	for city_id in GameState.current_cities:
 		var city = GameState.current_cities[city_id]
