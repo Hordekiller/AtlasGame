@@ -110,7 +110,8 @@ func _load_building_definitions() -> void:
 			"costs": { Globals.ResourceType.WOOD: 20, Globals.ResourceType.GOLD: 15 },
 			"upgrade_costs": { Globals.ResourceType.WOOD: 25, Globals.ResourceType.GOLD: 20, Globals.ResourceType.WINE: 5 },
 			"description": "تولید شراب برای فرهنگ",
-			"requires_research": ["wine_culture"]
+			"requires_research": ["wine_culture"],
+			"requires_island_resource": Globals.IslandResource.WINE
 		},
 		"glassblower": {
 			"name": "شیشه‌گر",
@@ -123,7 +124,8 @@ func _load_building_definitions() -> void:
 			"costs": { Globals.ResourceType.WOOD: 25, Globals.ResourceType.GOLD: 20 },
 			"upgrade_costs": { Globals.ResourceType.WOOD: 30, Globals.ResourceType.GOLD: 25, Globals.ResourceType.STONE: 10 },
 			"description": "تولید شیشه از چوب",
-			"requires_research": ["glass_production"]
+			"requires_research": ["glass_production"],
+			"requires_island_resource": Globals.IslandResource.GLASS
 		},
 		"marble_quarry": {
 			"name": "معدن مرمر",
@@ -135,7 +137,8 @@ func _load_building_definitions() -> void:
 			"costs": { Globals.ResourceType.WOOD: 30, Globals.ResourceType.GOLD: 20, Globals.ResourceType.STONE: 15 },
 			"upgrade_costs": { Globals.ResourceType.WOOD: 35, Globals.ResourceType.GOLD: 30, Globals.ResourceType.STONE: 20 },
 			"description": "تولید مرمر برای ساختمان‌های پیشرفته",
-			"requires_research": ["marble_usage"]
+			"requires_research": ["marble_usage"],
+			"requires_island_resource": Globals.IslandResource.MARBLE
 		},
 		"academy": {
 			"name": "آکادمی",
@@ -404,7 +407,8 @@ func _load_building_definitions() -> void:
 			"costs": { Globals.ResourceType.WOOD: 50, Globals.ResourceType.GOLD: 80, Globals.ResourceType.STONE: 30, Globals.ResourceType.CRYSTAL: 20 },
 			"upgrade_costs": { Globals.ResourceType.WOOD: 60, Globals.ResourceType.GOLD: 100, Globals.ResourceType.MARBLE: 30, Globals.ResourceType.CRYSTAL: 25 },
 			"description": "تولید گوگرد برای واحدهای نظامی پیشرفته",
-			"requires_research": ["alchemy"]
+			"requires_research": ["alchemy"],
+			"requires_island_resource": Globals.IslandResource.SULFUR
 		},
 		"dump": {
 			"name": "زباله‌دان",
@@ -671,6 +675,16 @@ func can_place_building(city_id: String, building_id: String, grid_pos: Vector2i
 		if _has_unique_building(city_id, building_id):
 			return {"success": false, "reason": "این ساختمان منحصربه‌فرد قبلاً ساخته شده"}
 
+	var island_requirement = defn.get("requires_island_resource", -1)
+	if island_requirement >= 0:
+		var city = GameState.current_cities.get(city_id)
+		if city:
+			var island_id = city.get("island_id", "")
+			var island = GameState.current_islands.get(island_id, {})
+			var primary = island.get("primary_resource", -1)
+			if primary != island_requirement:
+				return {"success": false, "reason": "این ساختمان به جزیره با منبع خاص نیاز دارد"}
+
 	var costs = defn.get("costs", {})
 	if not EconomyManager.can_afford(city_id, costs):
 		return {"success": false, "reason": "منابع کافی نیست"}
@@ -705,12 +719,10 @@ func place_building(city_id: String, building_id: String, grid_pos: Vector2i) ->
 	var city = GameState.current_cities[city_id]
 
 	var costs = defn.get("costs", {}).duplicate()
-	var reduction = get_cost_reduction(city_id, -1)
-	if reduction > 0:
-		for r in costs:
-			var red = get_cost_reduction(city_id, r)
-			if red > 0:
-				costs[r] = int(costs[r] * (100.0 - red) / 100.0)
+	for r in costs:
+		var red = get_cost_reduction(city_id, r)
+		if red > 0:
+			costs[r] = int(costs[r] * (100.0 - red) / 100.0)
 
 	EconomyManager.deduct_costs(city_id, costs)
 
@@ -760,7 +772,7 @@ func upgrade_building(city_id: String, grid_pos: Vector2i) -> bool:
 		push_warning("No available builders for upgrade in city: ", city_id)
 		return false
 
-	var defn = _building_definitions.get(building_data.id)
+	var defn = _building_definitions.get(building_data.get("id", ""))
 	if not defn:
 		return false
 
@@ -801,6 +813,14 @@ func demolish_building(city_id: String, grid_pos: Vector2i) -> bool:
 
 	var size = building_data.get("size", Vector2i(1, 1))
 	var origin = building_data.get("grid_pos", grid_pos)
+
+	var defn = _building_definitions.get(building_data.get("id", ""), {})
+	if defn and GameState.selected_city_id == city_id:
+		var costs = defn.get("costs", {})
+		for r in costs:
+			var refund = int(costs[r] * 0.25)
+			if refund > 0:
+				EconomyManager.add_resources(city_id, r, refund)
 
 	var to_remove = []
 	for pos in city.get("buildings", {}):
