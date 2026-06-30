@@ -4,11 +4,6 @@ const WORLD_SEED: int = 42
 const ISLAND_COUNT: int = 20
 const CITIES_PER_ISLAND: int = 4
 
-var _island_scenes: Dictionary = {}
-
-func _ready() -> void:
-	pass
-
 func generate_world() -> void:
 	var rng = RandomNumberGenerator.new()
 	rng.seed = WORLD_SEED
@@ -160,7 +155,16 @@ func can_colonize(city_id: String) -> bool:
 		if data.get("id") == "port":
 			has_port = true
 			break
-	return has_port
+	if not has_port:
+		return false
+	var max_colonies = BuildingManager.get_max_colonies(city_id)
+	var current_colonies = 0
+	for cid in GameState.current_cities:
+		if cid != city_id and GameState.current_cities[cid].get("player", "") != "":
+			current_colonies += 1
+	if max_colonies <= 0:
+		return false
+	return current_colonies < max_colonies
 
 func colony_cost() -> Dictionary:
 	return {
@@ -180,6 +184,14 @@ func colonize_island(city_id: String, island_id: String, city_name: String) -> S
 	if not city:
 		return ""
 
+	var positions = island.get("city_positions", [])
+	if positions.is_empty():
+		return ""
+
+	if island.get("player_cities", []).size() >= positions.size():
+		EventBus.notification_added.emit("این جزیره ظرفیت شهر جدید ندارد!", "warning")
+		return ""
+
 	var cost = colony_cost()
 	for rtype in cost:
 		var amt = cost[rtype]
@@ -189,7 +201,7 @@ func colonize_island(city_id: String, island_id: String, city_name: String) -> S
 	for rtype in cost:
 		EconomyManager.change_resource(city_id, rtype, -cost[rtype])
 
-	var next_pos = island.get("city_positions", []).size()
+	var next_pos = island.get("player_cities", []).size()
 	var colonized = create_player_city(city_name, island_id, next_pos)
 	if colonized != "":
 		GameState.current_islands[island_id]["explored"] = true

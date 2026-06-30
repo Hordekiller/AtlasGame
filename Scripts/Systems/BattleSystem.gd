@@ -1,11 +1,11 @@
 extends Node
 
-const BATTLE_PHASES = {
-	NAVAL = 0,
-	BOMBARDMENT = 1,
-	GROUND = 2,
-	SIEGE = 3,
-	AFTERMATH = 4
+enum BATTLE_PHASES {
+	NAVAL,
+	BOMBARDMENT,
+	GROUND,
+	SIEGE,
+	AFTERMATH
 }
 
 const ROW_ORDER = ["front", "back", "artillery"]

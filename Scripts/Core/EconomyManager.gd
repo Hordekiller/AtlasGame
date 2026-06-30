@@ -84,6 +84,14 @@ func deduct_costs(city_id: String, costs: Dictionary) -> void:
 		resources[rtype] = resources.get(rtype, 0.0) - costs[rtype]
 		EventBus.resource_changed.emit(city_id, str(rtype), resources[rtype], -costs[rtype])
 
+func change_resource(city_id: String, rtype: int, amount: float) -> void:
+	var city = GameState.current_cities.get(city_id)
+	if not city:
+		return
+	var resources = city.get("resources", {})
+	resources[rtype] = max(0.0, resources.get(rtype, 0.0) + amount)
+	EventBus.resource_changed.emit(city_id, str(rtype), resources[rtype], amount)
+
 func add_resources(city_id: String, rtype: int, amount: float) -> void:
 	var city = GameState.current_cities.get(city_id)
 	if not city:

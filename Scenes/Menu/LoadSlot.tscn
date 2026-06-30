@@ -1,0 +1,37 @@
+[gd_scene load_steps=2 format=3 uid="uid://c3mgitmcmoupi"]
+
+[ext_resource type="Script" path="res://Scenes/Menu/LoadSlot.gd" id="1_nmu4b"]
+
+[node name="LoadSlot" type="Panel"]
+layout_mode = 1
+color = Color(0.12, 0.12, 0.18, 0.85)
+script = ExtResource("1_nmu4b")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 4
+
+[node name="SlotLabel" type="Label" parent="VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.9, 0.85, 0.6, 1)
+horizontal_alignment = 1
+text = "ذخیره ۱"
+
+[node name="InfoLabel" type="Label" parent="VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 0.8)
+horizontal_alignment = 1
+text = "خالی"
+
+[node name="LoadBtn" type="Button" parent="VBox"]
+layout_mode = 2
+text = "بارگذاری"
+
+[node name="DeleteBtn" type="Button" parent="VBox"]
+layout_mode = 2
+text = "حذف"

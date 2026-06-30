@@ -49,7 +49,9 @@ func _refresh_citizens() -> void:
 	if not city:
 		return
 	var pop = int(city.get("resources", {}).get(Globals.ResourceType.POPULATION, 0))
-	var count = clampi(pop / 3, 0, MAX_CITIZENS)
+	var satisfaction = city.get("satisfaction", 100.0)
+	var sat_factor = clampf(satisfaction / 100.0, 0.2, 1.5)
+	var count = clampi(int(pop / 3 * sat_factor), 0, MAX_CITIZENS)
 
 	var buildings = city.get("buildings", {})
 	var positions: Array = []
@@ -73,26 +75,38 @@ func _refresh_citizens() -> void:
 	for i in range(count):
 		var base = positions[i % positions.size()]
 		var offset = Vector2(rng.randf_range(-WANDER_RADIUS, WANDER_RADIUS), rng.randf_range(-WANDER_RADIUS, WANDER_RADIUS))
-		_spawn_citizen(base + offset)
+		_spawn_citizen(base + offset, satisfaction)
 
-func _spawn_citizen(pos: Vector2) -> void:
+func _spawn_citizen(pos: Vector2, satisfaction: float = 100.0) -> void:
 	if not _citizen_scene:
 		return
 	var c = _citizen_scene.instantiate()
 	c.position = pos
 	c.z_index = 5
-	c.scale = Vector2(0.8, 0.8)
+	var sat_scale = clampf(satisfaction / 100.0, 0.6, 1.2)
+	c.scale = Vector2(0.8, 0.8) * sat_scale
+
+	if satisfaction >= 80.0:
+		c.modulate = Color(0.8, 1.0, 0.8, 1.0)
+	elif satisfaction >= 50.0:
+		c.modulate = Color(1.0, 1.0, 0.8, 1.0)
+	else:
+		c.modulate = Color(1.0, 0.7, 0.7, 1.0)
+
 	add_child(c)
 	_citizens.append(c)
 
+	var wander_range = 30.0 * sat_scale
+	var speed_factor = 1.0 / maxf(sat_scale, 0.1)
+
 	var tween = create_tween().set_loops()
-	var target = pos + Vector2(randf_range(-30, 30), randf_range(-30, 30))
-	tween.tween_property(c, "position", target, randf_range(2.0, 4.0))
+	var target = pos + Vector2(randf_range(-wander_range, wander_range), randf_range(-wander_range, wander_range))
+	tween.tween_property(c, "position", target, randf_range(2.0, 4.0) * speed_factor)
 	tween.tween_callback(func():
 		if is_instance_valid(c):
-			target = pos + Vector2(randf_range(-30, 30), randf_range(-30, 30))
+			target = pos + Vector2(randf_range(-wander_range, wander_range), randf_range(-wander_range, wander_range))
 			var t2 = create_tween().set_loops()
-			t2.tween_property(c, "position", target, randf_range(2.0, 4.0))
+			t2.tween_property(c, "position", target, randf_range(2.0, 4.0) * speed_factor)
 	)
 
 func _clear_citizens() -> void:

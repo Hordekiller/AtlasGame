@@ -17,16 +17,10 @@ var _placement_building_id: String = ""
 
 var _city_id: String = ""
 var _building_nodes: Dictionary = {}
-var _construct_tex: Texture = null
 
 func _ready() -> void:
 	_camera = $Camera2D
 	_city_id = GameState.selected_city_id
-	_camera.zoom = Vector2(0.8, 0.8)
-
-	var cp = "res://Assets/Textures/Buildings/construct.png"
-	if ResourceLoader.exists(cp):
-		_construct_tex = ResourceLoader.load(cp)
 
 	EventBus.building_constructed.connect(_on_building_changed)
 	EventBus.building_demolished.connect(_on_building_demolished)
@@ -36,9 +30,31 @@ func _ready() -> void:
 	EventBus.building_upgrade_progress.connect(_on_progress_update)
 	EventBus.building_construct_progress.connect(_on_progress_update)
 
+	_update_camera_for_viewport()
+	get_viewport().size_changed.connect(_update_camera_for_viewport)
+	_setup_water_shader()
+	rebuild_all()
+
+func _setup_water_shader() -> void:
+	if ResourceLoader.exists("res://Assets/Shaders/water.gdshader"):
+		var bg = $Bg
+		if bg:
+			var mat = ShaderMaterial.new()
+			mat.shader = ResourceLoader.load("res://Assets/Shaders/water.gdshader")
+			bg.material = mat
+
+func _update_camera_for_viewport() -> void:
+	var vp = get_viewport().get_visible_rect()
+	var ts = ResponsiveLayout.get_tile_size()
+	_camera.position = Vector2(GRID_SIZE * ts * 0.5, GRID_SIZE * ts * 0.5)
+	var zoom_x = vp.size.x / (GRID_SIZE * ts * 1.5)
+	var zoom_y = vp.size.y / (GRID_SIZE * ts * 1.3)
+	var zoom = min(zoom_x, zoom_y)
+	_camera.zoom = Vector2(clampf(zoom, 0.4, 1.2), clampf(zoom, 0.4, 1.2))
+
 func _on_city_selected(city_id: String) -> void:
 	_city_id = city_id
-	_camera.position = Vector2(512, 384)
+	_update_camera_for_viewport()
 	rebuild_all()
 
 func rebuild_all() -> void:
@@ -77,7 +93,8 @@ func _build_single(data: Dictionary) -> void:
 
 	var building = BUILDING_SCENE.instantiate()
 	building.setup(data, defn, _city_id)
-	building.position = Vector2(pos.x * TILE_SIZE, pos.y * TILE_SIZE)
+	var ts = ResponsiveLayout.get_tile_size()
+	building.position = Vector2(pos.x * ts, pos.y * ts)
 	building.clicked.connect(_on_building_clicked_from_scene)
 	add_child(building)
 
@@ -135,9 +152,6 @@ func _update_building_node(grid_pos: Vector2i) -> void:
 		if not defn.is_empty():
 			existing.setup(data, defn, _city_id)
 
-func _process(_delta: float) -> void:
-	pass
-
 func _get_building_data(grid_pos: Vector2i) -> Dictionary:
 	var city = GameState.current_cities.get(_city_id)
 	if not city:
@@ -175,18 +189,20 @@ func _draw_placement_preview() -> void:
 		color = Color(0, 1, 0, 0.25) if check.success else Color(1, 0, 0, 0.25)
 
 		var wp = _grid_to_world(_hovered_tile)
-		draw_rect(Rect2(wp, size * TILE_SIZE), color, true)
+		var ts = ResponsiveLayout.get_tile_size()
+		draw_rect(Rect2(wp, size * ts), color, true)
 
 		var sp = Globals.get_building_sprite(_placement_building_id)
 		if ResourceLoader.exists(sp):
 			var tex = ResourceLoader.load(sp) as Texture2D
 			if tex:
-				var ts = size.x * TILE_SIZE * 0.5
-				var center = wp + size * TILE_SIZE / 2
+				var ts2 = size.x * ts * 0.5
+				var center = wp + size * ts / 2
 				var alpha = 0.4 if not check.success else 0.7
-				draw_texture_rect(tex, Rect2(center - Vector2(ts * 0.5, ts * 0.5), Vector2(ts, ts)), false, Color(1, 1, 1, alpha))
+				draw_texture_rect(tex, Rect2(center - Vector2(ts2 * 0.5, ts2 * 0.5), Vector2(ts2, ts2)), false, Color(1, 1, 1, alpha))
 	else:
-		draw_rect(Rect2(_grid_to_world(_hovered_tile), Vector2(TILE_SIZE, TILE_SIZE)), Color(1, 1, 1, 0.1), true)
+		var ts = ResponsiveLayout.get_tile_size()
+		draw_rect(Rect2(_grid_to_world(_hovered_tile), Vector2(ts, ts)), Color(1, 1, 1, 0.1), true)
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
@@ -230,13 +246,15 @@ func _screen_to_grid(sp: Vector2) -> Vector2i:
 	var local = sp - global_position
 	var city = GameState.current_cities.get(_city_id)
 	var gs = city.get("grid_size", GRID_SIZE) if city else GRID_SIZE
+	var ts = ResponsiveLayout.get_tile_size()
 	return Vector2i(
-		clamp(int(floor(local.x / TILE_SIZE)), 0, gs - 1),
-		clamp(int(floor(local.y / TILE_SIZE)), 0, gs - 1)
+		clamp(int(floor(local.x / ts)), 0, gs - 1),
+		clamp(int(floor(local.y / ts)), 0, gs - 1)
 	)
 
 func _grid_to_world(g: Vector2i) -> Vector2:
-	return Vector2(g.x * TILE_SIZE, g.y * TILE_SIZE)
+	var ts = ResponsiveLayout.get_tile_size()
+	return Vector2(g.x * ts, g.y * ts)
 
 func enter_placement_mode(bid: String) -> void:
 	_placement_mode = true

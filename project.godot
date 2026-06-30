@@ -8,6 +8,28 @@
 
 config_version=5
 
+[android]
+
+modules/disable_immersive=false
+screen/use_32_bits=true
+screen/force_landscape=true
+screen/disable_screen_rotation=true
+screen/support_small=true
+screen/support_normal=true
+screen/support_large=true
+screen/support_xlarge=true
+pkg_name="com.gamemb.ikariam"
+version/code=1
+version/name="0.4.0"
+permissions/INTERNET=true
+permissions/VIBRATE=true
+permissions/RECEIVE_BOOT_COMPLETED=true
+package/min_sdk=24
+package/target_sdk=34
+screen/immersive_mode=true
+graphics/opengl_debug=false
+xr_features/xr_mode=0
+
 [animation]
 
 compatibility/default_parent_skeleton_in_mesh_instance_3d=true
@@ -33,36 +55,36 @@ UIManager="*res://Scripts/Core/UIManager.gd"
 SaveManager="*res://Scripts/Core/SaveManager.gd"
 EventBus="*res://Globals/EventBus.gd"
 UITheme="*res://Globals/UITheme.gd"
+ResponsiveLayout="*res://Scripts/Core/ResponsiveLayout.gd"
 MilitaryManager="*res://Scripts/Military/MilitaryManager.gd"
 BattleSystem="*res://Scripts/Systems/BattleSystem.gd"
+CommanderSystem="*res://Scripts/Systems/CommanderSystem.gd"
+QuestSystem="*res://Scripts/Systems/QuestSystem.gd"
+EventSystem="*res://Scripts/Systems/EventSystem.gd"
+NotificationManager="*res://Scripts/Core/NotificationManager.gd"
+BeginnerProtection="*res://Scripts/Systems/BeginnerProtection.gd"
+ObjectPool="*res://Scripts/Utils/ObjectPool.gd"
 SpySystem="*res://Scripts/Systems/SpySystem.gd"
 MarketplaceManager="*res://Scripts/Systems/MarketplaceManager.gd"
+AudioManager="*res://Scripts/Core/AudioManager.gd"
+SafeAreaManager="*res://Scripts/Core/SafeAreaManager.gd"
+HapticManager="*res://Scripts/Core/HapticManager.gd"
+CommanderConfig="*res://Scripts/Systems/CommanderConfig.gd"
+FormationConfig="*res://Scripts/Systems/FormationConfig.gd"
+DefensiveBuildings="*res://Scripts/Systems/DefensiveBuildings.gd"
+CombatSystem="*res://Scripts/Systems/CombatSystem.gd"
 
 [display]
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/size/mode=2
-window/size/always_on_top=false
-window/dpi/allow_hidpi=true
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-window/stretch/scale=1.0
-
-[android]
-
-modules/disable_immersive=false
-screen/use_32_bits=true
-screen/force_landscape=true
-screen/disable_screen_rotation=true
-screen/support_small=true
-screen/support_normal=true
-screen/support_large=true
-screen/support_xlarge=true
 
 [gui]
 
-#theme/custom_theme="res://Assets/Fonts/GameTheme.tres"
+theme/custom_theme="res://Assets/Fonts/GameTheme.tres"
 common/drop_mouse_on_gui_input_disabled=true
 
 [input]
@@ -90,6 +112,10 @@ zoom_out={
 ]
 }
 
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
 [internationalization]
 
 locale/translation_remaps={}
@@ -102,5 +128,7 @@ common/enable_pause_aware_picking=true
 
 [rendering]
 
+renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true
 environment/defaults/default_clear_color=Color(0.05, 0.05, 0.1, 1)
 renderer/anti_aliasing/quality=0

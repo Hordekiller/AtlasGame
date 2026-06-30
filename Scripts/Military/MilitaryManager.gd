@@ -1,6 +1,62 @@
 extends Node
 
 const UNIT_DEFINITIONS = {
+	"militia": {
+		"name": "شبه‌نظامی",
+		"type": Globals.UnitType.MILITIA,
+		"row": "front",
+		"attack": 3,
+		"defense": 1,
+		"health": 15,
+		"speed": 2,
+		"cost": { Globals.ResourceType.WOOD: 5, Globals.ResourceType.GOLD: 2 },
+		"upkeep": { Globals.ResourceType.FOOD: 0.3, Globals.ResourceType.GOLD: 0.1 },
+		"train_time": 5.0,
+		"tier": 1,
+		"building": "barracks"
+	},
+	"swordsman": {
+		"name": "شمشیرزن",
+		"type": Globals.UnitType.SWORDSMAN,
+		"row": "front",
+		"attack": 6,
+		"defense": 5,
+		"health": 30,
+		"speed": 2,
+		"cost": { Globals.ResourceType.WOOD: 12, Globals.ResourceType.GOLD: 10, Globals.ResourceType.STONE: 5 },
+		"upkeep": { Globals.ResourceType.FOOD: 0.7, Globals.ResourceType.GOLD: 0.3 },
+		"train_time": 15.0,
+		"tier": 2,
+		"building": "barracks"
+	},
+	"archer": {
+		"name": "کماندار",
+		"type": Globals.UnitType.ARCHER,
+		"row": "back",
+		"attack": 7,
+		"defense": 3,
+		"health": 20,
+		"speed": 3,
+		"cost": { Globals.ResourceType.WOOD: 15, Globals.ResourceType.GOLD: 8 },
+		"upkeep": { Globals.ResourceType.FOOD: 0.6, Globals.ResourceType.GOLD: 0.2 },
+		"train_time": 12.0,
+		"tier": 2,
+		"building": "barracks"
+	},
+	"spearman": {
+		"name": "نیزه‌دار",
+		"type": Globals.UnitType.SPEARMAN,
+		"row": "front",
+		"attack": 5,
+		"defense": 6,
+		"health": 25,
+		"speed": 2,
+		"cost": { Globals.ResourceType.WOOD: 8, Globals.ResourceType.GOLD: 6 },
+		"upkeep": { Globals.ResourceType.FOOD: 0.5, Globals.ResourceType.GOLD: 0.2 },
+		"train_time": 8.0,
+		"tier": 1,
+		"building": "barracks"
+	},
 	"slinger": {
 		"name": "تیرانداز",
 		"type": Globals.UnitType.SLINGER,

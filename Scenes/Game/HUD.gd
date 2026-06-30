@@ -1,10 +1,11 @@
 extends Control
 
-const TOP_BAR_H: float = 56.0
-const BOTTOM_BAR_H: float = 88.0
+const TOP_BAR_H: float = 64.0
+const BOTTOM_BAR_H: float = 120.0
 
 @onready var top_bar: Panel = $TopBar
 @onready var city_label: Label = $TopBar/CitySection/CityLabel
+@onready var city_icon: TextureRect = $TopBar/CitySection/CityIcon
 @onready var resource_container: HBoxContainer = $TopBar/ResourceContainer
 @onready var action_buttons: HBoxContainer = $TopBar/ActionButtons
 
@@ -13,12 +14,24 @@ const BOTTOM_BAR_H: float = 88.0
 
 @onready var building_info: Panel = $BuildingInfo
 @onready var building_palette: Panel = $BottomBar/BottomContent/BuildingPalette
+@onready var palette_scroll: ScrollContainer = $BottomBar/BottomContent/BuildingPalette/Scroll
 @onready var palette_container: GridContainer = $BottomBar/BottomContent/BuildingPalette/Scroll/Grid
 
 @onready var notification_label: Label = $NotificationLabel
 @onready var time_label: Label = $TopBar/CitySection/TimeLabel
+@onready var attack_alert: Panel = $AttackAlert
 
 @onready var cat_buttons: HBoxContainer = $BottomBar/BottomContent/CategoryBar/HBox
+
+@onready var advisor_bar: VBoxContainer = $AdvisorBar
+@onready var town_btn: TextureButton = $AdvisorBar/TownBtn
+@onready var commander_btn: TextureButton = $AdvisorBar/CommanderBtn
+@onready var military_btn: TextureButton = $AdvisorBar/MilitaryBtn
+@onready var research_btn: TextureButton = $AdvisorBar/ResearchBtn
+@onready var quest_btn: TextureButton = $AdvisorBar/QuestBtn
+@onready var event_btn: TextureButton = $AdvisorBar/EventBtn
+@onready var diplomacy_btn: TextureButton = $AdvisorBar/DiplomacyBtn
+@onready var alliance_btn: TextureButton = $AdvisorBar/AllianceBtn
 
 var _resource_labels: Dictionary = {}
 var _notification_timer: float = 0.0
@@ -32,12 +45,34 @@ func _ready() -> void:
 	_setup_buildings()
 	_connect_signals()
 	_setup_action_buttons()
+	_setup_advisor_bar()
+	get_viewport().size_changed.connect(_on_viewport_resized)
+
+func _on_viewport_resized() -> void:
+	_update_responsive()
+
+func _update_responsive() -> void:
+	var s = ResponsiveLayout.scale_factor
+	top_bar.custom_minimum_size.y = max(TOP_BAR_H, ResponsiveLayout.get_top_bar_h())
+	bottom_bar.custom_minimum_size.y = max(BOTTOM_BAR_H, ResponsiveLayout.get_bottom_bar_h())
+	palette_container.columns = ResponsiveLayout.get_building_grid_columns()
+	var ts = ResponsiveLayout.MIN_TOUCH_TARGET * s
+	for btn in action_buttons.get_children():
+		if btn is TextureButton:
+			btn.custom_minimum_size = Vector2(ts, ts)
+	for rt in _resource_labels:
+		var lbl = _resource_labels[rt]
+		lbl.add_theme_font_size_override("font_size", ResponsiveLayout.font_size(12))
+	for btn in advisor_bar.get_children():
+		if btn is TextureButton:
+			btn.custom_minimum_size = Vector2(max(88, ts), max(88, ts))
 
 func _style_ui() -> void:
 	UITheme.style_panel(top_bar)
 	UITheme.style_panel(bottom_bar)
-	top_bar.custom_minimum_size.y = TOP_BAR_H
-	bottom_bar.custom_minimum_size.y = BOTTOM_BAR_H
+	_update_responsive()
+	if ResourceLoader.exists("res://Assets/Textures/UI/city_icon.png"):
+		city_icon.texture = ResourceLoader.load("res://Assets/Textures/UI/city_icon.png")
 
 func _setup_resource_display() -> void:
 	var display_resources = [
@@ -76,8 +111,6 @@ func _setup_resource_display() -> void:
 
 func _setup_action_buttons() -> void:
 	var actions = [
-		{"name": "ResearchBtn", "icon": "res://Assets/Textures/UI/scientist.png", "callback": "_on_research"},
-		{"name": "TradeBtn", "icon": "res://Assets/Textures/UI/ship_transport.png", "callback": "_on_trade"},
 		{"name": "MapBtn", "icon": "res://Assets/Textures/UI/btn_world.png", "callback": "_on_map"},
 		{"name": "MenuBtn", "icon": "res://Assets/Textures/UI/close.png", "callback": "_on_menu"},
 	]
@@ -85,7 +118,8 @@ func _setup_action_buttons() -> void:
 	for a in actions:
 		var btn = TextureButton.new()
 		btn.name = a.name
-		btn.custom_minimum_size = Vector2(36, 36)
+		var ts = ResponsiveLayout.MIN_TOUCH_TARGET * ResponsiveLayout.scale_factor
+		btn.custom_minimum_size = Vector2(ts, ts)
 		btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 
 		if ResourceLoader.exists(a.icon):
@@ -96,13 +130,31 @@ func _setup_action_buttons() -> void:
 		btn.pressed.connect(method)
 		action_buttons.add_child(btn)
 
+func _setup_advisor_bar() -> void:
+	var advisors = [
+		{"node": town_btn, "icon": "res://Assets/Textures/UI/city_icon.png", "callback": "_on_town"},
+		{"node": commander_btn, "icon": "res://Assets/Textures/UI/sword.png", "callback": "_on_commander"},
+		{"node": military_btn, "icon": "res://Assets/Textures/UI/btn_world.png", "callback": "_on_military"},
+		{"node": research_btn, "icon": "res://Assets/Textures/UI/scientist.png", "callback": "_on_research"},
+		{"node": quest_btn, "icon": "res://Assets/Textures/UI/check.png", "callback": "_on_quest"},
+		{"node": event_btn, "icon": "res://Assets/Textures/UI/time.png", "callback": "_on_event"},
+		{"node": diplomacy_btn, "icon": "res://Assets/Textures/UI/ship_transport.png", "callback": "_on_diplomacy"},
+		{"node": alliance_btn, "icon": "res://Assets/Textures/UI/close.png", "callback": "_on_alliance"},
+	]
+	for a in advisors:
+		if ResourceLoader.exists(a.icon):
+			a.node.texture_normal = ResourceLoader.load(a.icon)
+		a.node.pressed.connect(Callable(self, a.callback))
+
 func _connect_signals() -> void:
 	EventBus.resource_changed.connect(_on_resource_changed)
 	EventBus.time_speed_changed.connect(_on_speed_changed)
 	EventBus.city_selected.connect(_on_city_selected)
-	EventBus.building_selected.connect(_on_building_selected)
+	EventBus.building_selected.connect(_on_building_selected_signal)
 	EventBus.notification_added.connect(_on_notification)
 	EventBus.game_loaded.connect(update_display)
+	EventBus.battle_initiated.connect(_on_battle_initiated)
+	EventBus.battle_completed.connect(_on_battle_completed)
 
 func _setup_categories() -> void:
 	var categories = [
@@ -112,7 +164,9 @@ func _setup_categories() -> void:
 		Globals.BuildingCategory.INFRASTRUCTURE,
 		Globals.BuildingCategory.RESEARCH,
 		Globals.BuildingCategory.MILITARY,
-		Globals.BuildingCategory.CULTURE
+		Globals.BuildingCategory.CULTURE,
+		Globals.BuildingCategory.SPECIAL,
+		Globals.BuildingCategory.REDUCTION
 	]
 
 	var names = {
@@ -122,7 +176,9 @@ func _setup_categories() -> void:
 		Globals.BuildingCategory.INFRASTRUCTURE: "زیرساخت",
 		Globals.BuildingCategory.RESEARCH: "پژوهش",
 		Globals.BuildingCategory.MILITARY: "نظامی",
-		Globals.BuildingCategory.CULTURE: "فرهنگ"
+		Globals.BuildingCategory.CULTURE: "فرهنگ",
+		Globals.BuildingCategory.SPECIAL: "ویژه",
+		Globals.BuildingCategory.REDUCTION: "تخفیف"
 	}
 
 	for cat in categories:
@@ -131,8 +187,9 @@ func _setup_categories() -> void:
 		btn.toggle_mode = true
 		btn.pressed.connect(_on_category_selected.bind(cat))
 		UITheme.style_button(btn)
-		btn.custom_minimum_size = Vector2(70, 30)
-		btn.add_theme_font_size_override("font_size", 11)
+		var s = ResponsiveLayout.scale_factor
+		btn.custom_minimum_size = Vector2(88, 36)
+		btn.add_theme_font_size_override("font_size", ResponsiveLayout.font_size(11))
 		cat_buttons.add_child(btn)
 
 	if cat_buttons.get_child_count() > 0:
@@ -147,7 +204,9 @@ func _setup_buildings() -> void:
 		Globals.BuildingCategory.INFRASTRUCTURE: [],
 		Globals.BuildingCategory.RESEARCH: [],
 		Globals.BuildingCategory.MILITARY: [],
-		Globals.BuildingCategory.CULTURE: []
+		Globals.BuildingCategory.CULTURE: [],
+		Globals.BuildingCategory.SPECIAL: [],
+		Globals.BuildingCategory.REDUCTION: []
 	}
 
 	for id in all_defs:
@@ -157,7 +216,7 @@ func _setup_buildings() -> void:
 			cat_order[cat] = []
 		cat_order[cat].append(id)
 
-	palette_container.columns = 4
+	palette_container.columns = ResponsiveLayout.get_building_grid_columns()
 
 	for cat in cat_order:
 		_building_buttons[cat] = []
@@ -167,14 +226,14 @@ func _setup_buildings() -> void:
 			var tex = UITheme.get_building_icon(id)
 			if tex:
 				btn.texture_normal = tex
-			btn.custom_minimum_size = Vector2(64, 64)
+			btn.custom_minimum_size = Vector2(88, 88)
 			btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 			btn.tooltip_text = defn.get("name", id)
 			btn.pressed.connect(_on_building_selected.bind(id))
 
 			var bg = ColorRect.new()
 			bg.color = Color(0.2, 0.25, 0.35, 0.6)
-			bg.custom_minimum_size = Vector2(68, 68)
+			bg.custom_minimum_size = Vector2(92, 92)
 			bg.mouse_filter = Control.MOUSE_FILTER_PASS
 
 			var container = CenterContainer.new()
@@ -185,6 +244,8 @@ func _setup_buildings() -> void:
 			bg.visible = (cat == _current_category)
 
 func _on_category_selected(cat: int) -> void:
+	AudioManager.play_button_click()
+	HapticManager.button_press()
 	for btn in cat_buttons.get_children():
 		if btn is Button:
 			btn.button_pressed = (btn.get_index() == cat_buttons.get_children().find(btn) and btn.is_pressed())
@@ -196,6 +257,7 @@ func _on_category_selected(cat: int) -> void:
 			bg.visible = vis
 
 func _on_building_selected(building_id: String) -> void:
+	HapticManager.button_press()
 	var city_id = GameState.selected_city_id
 	if city_id.is_empty():
 		return
@@ -263,33 +325,108 @@ func _on_building_selected_signal(city_id: String, grid_pos: Vector2i) -> void:
 		building_info.show_for_building(city_id, grid_pos)
 
 func _on_speed_changed(speed: float) -> void:
-	pass
+	var speed_names = {0.5: "آهسته", 1.0: "عادی", 2.0: "سریع", 3.0: "خیلی سریع"}
+	UIManager.show_notification("سرعت: " + speed_names.get(speed, str(speed)), "info")
+
+func _on_battle_initiated(_attacker_id: String, defender_id: String) -> void:
+	if defender_id == GameState.selected_city_id:
+		attack_alert.visible = true
+		AudioManager.play_error()
+
+func _on_battle_completed(_battle_id: String, _winner: String) -> void:
+	attack_alert.visible = false
+	_update_all_attack_alerts()
+
+func _update_all_attack_alerts() -> void:
+	for cid in GameState.current_cities:
+		var city = GameState.current_cities[cid]
+		if city.get("under_attack", false):
+			attack_alert.visible = true
+			return
+	attack_alert.visible = false
 
 func _on_notification(message: String, _type: String) -> void:
 	notification_label.text = message
 	notification_label.modulate = Color(1, 1, 1, 1)
 	_notification_timer = 3.0
 
+func _on_town() -> void:
+	AudioManager.play_button_click()
+	HapticManager.button_press()
+	building_info.hide()
+	var game = get_parent()
+	if game and game.has_method("switch_to_city_view"):
+		game.switch_to_city_view()
+
+func _on_commander() -> void:
+	AudioManager.play_button_click()
+	HapticManager.button_press()
+	var cp = get_parent().get_node_or_null("CommanderPanel")
+	if cp:
+		cp.visible = not cp.visible
+		if cp.visible and cp.has_method("open"):
+			cp.open()
+
+func _on_quest() -> void:
+	AudioManager.play_button_click()
+	HapticManager.button_press()
+	var qp = get_parent().get_node_or_null("QuestPanel")
+	if qp:
+		qp.visible = not qp.visible
+		if qp.visible and qp.has_method("open"):
+			qp.open()
+
+func _on_event() -> void:
+	AudioManager.play_button_click()
+	HapticManager.button_press()
+	var ep = get_parent().get_node_or_null("EventPanel")
+	if ep:
+		ep.visible = not ep.visible
+		if ep.visible and ep.has_method("open"):
+			ep.open()
+
 func _on_research() -> void:
+	AudioManager.play_button_click()
+	HapticManager.button_press()
 	var rp = get_parent().get_node_or_null("ResearchPanel")
 	if rp:
 		rp.visible = not rp.visible
 		if rp.visible and rp.has_method("show_panel"):
 			rp.show_panel()
 
-func _on_trade() -> void:
+func _on_military() -> void:
+	AudioManager.play_button_click()
+	HapticManager.button_press()
+	var mp = get_parent().get_node_or_null("MilitaryPanel")
+	if mp:
+		mp.visible = not mp.visible
+		if mp.visible and mp.has_method("open"):
+			mp.open(GameState.selected_city_id)
+
+func _on_diplomacy() -> void:
+	AudioManager.play_button_click()
+	HapticManager.button_press()
 	var tp = get_parent().get_node_or_null("TradePanel")
 	if tp:
 		tp.visible = not tp.visible
 		if tp.visible and tp.has_method("open"):
 			tp.open(GameState.selected_city_id)
 
+func _on_alliance() -> void:
+	AudioManager.play_button_click()
+	HapticManager.button_press()
+	get_parent().get_node_or_null("AllyPanel").visible = not get_parent().get_node_or_null("AllyPanel").visible if get_parent().get_node_or_null("AllyPanel") else null
+
 func _on_map() -> void:
+	AudioManager.play_button_click()
+	HapticManager.button_press()
 	var game = get_parent()
 	if game and game.has_method("switch_to_world_map"):
 		game.switch_to_world_map()
 
 func _on_menu() -> void:
+	AudioManager.play_button_click()
+	HapticManager.button_press()
 	SaveManager.save_game(0)
 	get_tree().change_scene_to_file("res://Scenes/Menu/MainMenu.tscn")
 
@@ -304,3 +441,6 @@ func _process(delta: float) -> void:
 		_notification_timer -= delta
 		if _notification_timer <= 0:
 			notification_label.text = ""
+
+	if attack_alert.visible:
+		attack_alert.modulate = Color(1, 1, 1, 0.7 + sin(GameState.game_time * 4.0) * 0.3)

@@ -17,6 +17,8 @@ var _ground: Sprite2D
 
 var _tween: Tween
 var _flash_rect: ColorRect
+var _local_construct_left: float = -1.0
+var _local_upgrade_left: float = -1.0
 
 signal clicked(data: Dictionary, pos: Vector2i)
 
@@ -27,14 +29,18 @@ func setup(data: Dictionary, def: Dictionary, cid: String) -> void:
 	grid_pos = data.get("grid_pos", Vector2i())
 	_build_all()
 
+func _tile_size() -> int:
+	return ResponsiveLayout.get_tile_size()
+
 func _build_all() -> void:
 	_clear_children()
 
 	var pos: Vector2i = grid_pos
+	var ts = _tile_size()
 	var size: Vector2i = building_data.get("size", Vector2i(2, 2))
 	var level: int = building_data.get("level", 1)
 	var bid: String = building_data.get("id", "unknown")
-	var wc = _grid_to_world(pos) + Vector2(size * 64 / 2.0)
+	var wc = _grid_to_world(pos) + Vector2(size * ts / 2.0)
 
 	_ground = Sprite2D.new()
 	_ground.texture = _get_ground_tex()
@@ -56,7 +62,7 @@ func _build_all() -> void:
 		_show_normal(wc, size, bid, level)
 
 	var rect = RectangleShape2D.new()
-	rect.size = Vector2(size * 64) - Vector2(4, 4)
+	rect.size = Vector2(size * ts) - Vector2(4, 4)
 	var area = Area2D.new()
 	area.z_index = 2
 	var col = CollisionShape2D.new()
@@ -65,6 +71,27 @@ func _build_all() -> void:
 	area.position = wc
 	area.input_event.connect(_on_clicked)
 	add_child(area)
+
+func _process(delta: float) -> void:
+	if _local_construct_left > 0:
+		_local_construct_left -= delta
+		_update_progress_local("construct_time_total", "construct_time_left", _local_construct_left, Color(0.2, 0.7, 1.0))
+	elif _local_upgrade_left > 0:
+		_local_upgrade_left -= delta
+		_update_progress_local("upgrade_time_total", "upgrade_time_left", _local_upgrade_left, Color(1.0, 0.7, 0.1))
+
+func _update_progress_local(total_key: String, left_key: String, local_left: float, color: Color) -> void:
+	var total = building_data.get(total_key, 1.0)
+	var progress = 1.0 - (local_left / max(total, 0.01))
+	if _progress_fill:
+		_progress_fill.color = color
+		_progress_fill.size.x = (_progress_bg.size.x if _progress_bg else 100) * clamp(progress, 0.0, 1.0)
+	if _progress_label:
+		var secs = int(max(0, local_left))
+		if secs >= 60:
+			_progress_label.text = "%d:%02d" % [secs / 60, secs % 60]
+		else:
+			_progress_label.text = "%ds" % secs
 
 func _show_constructing(wc: Vector2, size: Vector2i, _bid: String) -> void:
 	var cp = "res://Assets/Textures/Buildings/construct.png"
@@ -75,13 +102,17 @@ func _show_constructing(wc: Vector2, size: Vector2i, _bid: String) -> void:
 		scaffold.centered = true
 		scaffold.scale = Vector2(max(1.0, size.x * 0.5), max(1.0, size.y * 0.5))
 		scaffold.z_index = 1
+		if ResourceLoader.exists("res://Assets/Shaders/building_glow.gdshader"):
+			var mat = ShaderMaterial.new()
+			mat.shader = ResourceLoader.load("res://Assets/Shaders/building_glow.gdshader")
+			scaffold.material = mat
 		add_child(scaffold)
 
 	var total = building_data.get("construct_time_total", 1.0)
-	var left = building_data.get("construct_time_left", total)
+	_local_construct_left = building_data.get("construct_time_left", total)
 	var progress = 1.0
 	if total > 0:
-		progress = 1.0 - (left / total)
+		progress = 1.0 - (_local_construct_left / total)
 	_make_progress_bar(wc, size, progress, Color(0.2, 0.7, 1.0))
 
 func _show_upgrading(wc: Vector2, size: Vector2i, bid: String) -> void:
@@ -97,10 +128,10 @@ func _show_upgrading(wc: Vector2, size: Vector2i, bid: String) -> void:
 		add_child(spr)
 
 	var total = building_data.get("upgrade_time_total", 1.0)
-	var left = building_data.get("upgrade_time_left", total)
+	_local_upgrade_left = building_data.get("upgrade_time_left", total)
 	var progress = 0.0
 	if total > 0:
-		progress = 1.0 - (left / total)
+		progress = 1.0 - (_local_upgrade_left / total)
 	_make_progress_bar(wc, size, progress, Color(1.0, 0.7, 0.1))
 
 func _show_normal(wc: Vector2, size: Vector2i, bid: String, level: int) -> void:
@@ -128,7 +159,7 @@ func _show_normal(wc: Vector2, size: Vector2i, bid: String, level: int) -> void:
 
 	_badge = Sprite2D.new()
 	_badge.texture = _get_badge_tex()
-	_badge.position = wc + Vector2(-size.x * 64 / 2 + 14, -size.y * 64 / 2 + 14)
+	_badge.position = wc + Vector2(-size.x * _tile_size() / 2 + 14, -size.y * _tile_size() / 2 + 14)
 	_badge.centered = true
 	_badge.scale = Vector2.ONE * 0.8
 	_badge.z_index = 3
@@ -136,7 +167,7 @@ func _show_normal(wc: Vector2, size: Vector2i, bid: String, level: int) -> void:
 
 	_level_label = Label.new()
 	_level_label.text = str(level)
-	_level_label.position = wc + Vector2(-size.x * 64 / 2 + 9, -size.y * 64 / 2 + 6)
+	_level_label.position = wc + Vector2(-size.x * _tile_size() / 2 + 9, -size.y * _tile_size() / 2 + 6)
 	_level_label.z_index = 4
 	_level_label.add_theme_font_size_override("font_size", 11)
 	_level_label.add_theme_color_override("font_color", Color(1, 1, 0.8))
@@ -148,7 +179,7 @@ func _show_normal(wc: Vector2, size: Vector2i, bid: String, level: int) -> void:
 	var assigned = building_data.get("workers_assigned", 0)
 	var needed = BuildingManager.get_workers_needed(bid, level)
 	_worker_label.text = "🧑 %d/%d" % [assigned, needed]
-	_worker_label.position = wc + Vector2(-size.x * 64 / 2 + 9, -size.y * 64 / 2 + 22)
+	_worker_label.position = wc + Vector2(-size.x * _tile_size() / 2 + 9, -size.y * _tile_size() / 2 + 22)
 	_worker_label.z_index = 4
 	_worker_label.add_theme_font_size_override("font_size", 8)
 	_worker_label.add_theme_color_override("font_color", Color(0.6, 0.8, 1.0))
@@ -166,6 +197,8 @@ func update_progress() -> void:
 	var constructing = building_data.get("constructing", false)
 	var upgrading = building_data.get("upgrading", false)
 	if not (constructing or upgrading):
+		_local_construct_left = -1.0
+		_local_upgrade_left = -1.0
 		if _progress_bg:
 			_progress_bg.queue_free()
 			_progress_fill.queue_free()
@@ -177,12 +210,12 @@ func update_progress() -> void:
 	var color = Color(0.2, 0.7, 1.0)
 	if constructing:
 		total = building_data.get("construct_time_total", 1.0)
-		var left = building_data.get("construct_time_left", total)
-		progress = 1.0 - (left / max(total, 0.01))
+		_local_construct_left = building_data.get("construct_time_left", total)
+		progress = 1.0 - (_local_construct_left / max(total, 0.01))
 	elif upgrading:
 		total = building_data.get("upgrade_time_total", 1.0)
-		var left = building_data.get("upgrade_time_left", total)
-		progress = 1.0 - (left / max(total, 0.01))
+		_local_upgrade_left = building_data.get("upgrade_time_left", total)
+		progress = 1.0 - (_local_upgrade_left / max(total, 0.01))
 		color = Color(1.0, 0.7, 0.1)
 
 	if _progress_fill:
@@ -192,11 +225,12 @@ func update_progress() -> void:
 		_progress_label.text = "%d%%" % (progress * 100)
 
 func flash_effect() -> void:
+	var ts = _tile_size()
 	var size = building_data.get("size", Vector2i(2, 2))
-	var wc = position + Vector2(size.x * 64 / 2.0, size.y * 64 / 2.0)
+	var wc = position + Vector2(size.x * ts / 2.0, size.y * ts / 2.0)
 
 	_flash_rect = ColorRect.new()
-	_flash_rect.size = Vector2(size.x * 64, size.y * 64)
+	_flash_rect.size = Vector2(size.x * ts, size.y * ts)
 	_flash_rect.position = Vector2(0, 0)
 	_flash_rect.color = Color(1, 1, 0.8, 0.6)
 	_flash_rect.z_index = 10
@@ -215,9 +249,10 @@ func _cleanup_flash() -> void:
 		_flash_rect.queue_free()
 
 func _make_progress_bar(wc: Vector2, size: Vector2i, progress: float, color: Color) -> void:
-	var bar_w = size.x * 64 - 16
+	var ts = _tile_size()
+	var bar_w = size.x * ts - 16
 	var bar_h = 6
-	var bar_pos = wc + Vector2(-bar_w / 2.0, -size.y * 64 / 2.0 - 10)
+	var bar_pos = wc + Vector2(-bar_w / 2.0, -size.y * ts / 2.0 - 10)
 
 	_progress_bg = ColorRect.new()
 	_progress_bg.size = Vector2(bar_w, bar_h)
@@ -252,7 +287,8 @@ func _clear_children() -> void:
 			c.queue_free()
 
 func _grid_to_world(g: Vector2i) -> Vector2:
-	return Vector2(g.x * 64, g.y * 64)
+	var ts = _tile_size()
+	return Vector2(g.x * ts, g.y * ts)
 
 var _ground_tex: Texture = null
 var _badge_tex: Texture = null

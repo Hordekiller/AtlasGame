@@ -17,6 +17,13 @@ func _ready() -> void:
 	cancel_btn.pressed.connect(_on_cancel)
 	colonize_btn.pressed.connect(_on_colonize)
 	city_name_input.add_theme_font_size_override("font_size", 14)
+	get_viewport().size_changed.connect(_update_responsive)
+
+func _update_responsive() -> void:
+	var vp = get_viewport().get_visible_rect()
+	var sz = ResponsiveLayout.clamp_modal_size(Vector2(min(380, vp.size.x * 0.8), min(250, vp.size.y * 0.6)))
+	custom_minimum_size = sz
+	size = sz
 
 func show_for_island(island_id: String, source_cities: Array) -> void:
 	_target_island_id = island_id
@@ -52,6 +59,7 @@ func _on_colonize() -> void:
 		name_text = "شهر جدید"
 	var result = WorldManager.colonize_island(_source_city_id, _target_island_id, name_text)
 	if result != "":
+		AudioManager.play_build()
 		EventBus.notification_added.emit("شهر " + name_text + " تأسیس شد!", "success")
 		hide()
 		EventBus.city_selected.emit(result)
@@ -59,7 +67,9 @@ func _on_colonize() -> void:
 		if game and game.has_method("switch_to_city_view"):
 			game.switch_to_city_view()
 	else:
+		AudioManager.play_error()
 		EventBus.notification_added.emit("استعمار ناموفق!", "error")
 
 func _on_cancel() -> void:
+	AudioManager.play_button_click()
 	hide()

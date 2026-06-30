@@ -1,23 +1,22 @@
-[gd_scene load_steps=3 format=3 uid="uid://df0hjrpak16rv"]
+[gd_scene format=3 uid="uid://df0hjrpak16rv"]
 
-[ext_resource type="Script" path="res://Scenes/Game/CityView.gd" id="1_t5nra"]
-[ext_resource type="Texture2D" path="res://Assets/Textures/Environment/city_bg.jpg" id="2_m42ad"]
-[ext_resource type="Script" path="res://Scenes/Game/CitizenSystem.gd" id="3_awfcp"]
+[ext_resource type="Script" uid="uid://duj2vjrmpd281" path="res://Scenes/Game/CityView.gd" id="1_t5nra"]
+[ext_resource type="Texture2D" uid="uid://de1l1dcpln0ku" path="res://Assets/Textures/Environment/city_bg.jpg" id="2_m42ad"]
+[ext_resource type="Script" uid="uid://diuvp8f27bquk" path="res://Scenes/Game/CitizenSystem.gd" id="3_awfcp"]
 
-[node name="CityView" type="Node2D"]
+[node name="CityView" type="Node2D" unique_id=828717348]
 script = ExtResource("1_t5nra")
-group = ["city_view"]
 
-[node name="CitizenSystem" type="Node2D" parent="."]
+[node name="CitizenSystem" type="Node2D" parent="." unique_id=660032985]
 script = ExtResource("3_awfcp")
 
-[node name="Bg" type="Sprite2D" parent="."]
-texture = ExtResource("2_m42ad")
-position = Vector2(512, 384)
-scale = Vector2(1.5, 1.2)
-z_index = -10
+[node name="Bg" type="Sprite2D" parent="." unique_id=519843637]
 modulate = Color(0.6, 0.6, 0.7, 0.8)
+z_index = -10
+position = Vector2(484, 767)
+scale = Vector2(1.5, 1.2)
+texture = ExtResource("2_m42ad")
 
-[node name="Camera2D" type="Camera2D" parent="."]
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1137670138]
 position = Vector2(512, 384)
 zoom = Vector2(0.8, 0.8)

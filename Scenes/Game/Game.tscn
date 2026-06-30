@@ -1,12 +1,21 @@
-[gd_scene load_steps=7 format=3 uid="uid://b6l6pnnmcmqfg"]
+[gd_scene load_steps=19 format=3 uid="uid://b6l6pnnmcmqfg"]
 
 [ext_resource type="Script" path="res://Scenes/Game/Game.gd" id="1_60gfu"]
+[ext_resource type="Script" path="res://Scenes/Game/AllyPanel.gd" id="12"]
+[ext_resource type="Script" path="res://Scenes/Game/QuestPanel.gd" id="15"]
+[ext_resource type="Script" path="res://Scenes/Game/EventPanel.gd" id="16"]
+[ext_resource type="Script" path="res://Scenes/Game/DailyReward.gd" id="17"]
 [ext_resource type="PackedScene" uid="uid://df0hjrpak16rv" path="res://Scenes/Game/CityView.tscn" id="2_03s6i"]
 [ext_resource type="PackedScene" uid="uid://dmhlk3sdfuh60" path="res://Scenes/Game/WorldMap.tscn" id="3_ys4d0"]
 [ext_resource type="PackedScene" uid="uid://egx7pfhe5qwk" path="res://Scenes/Game/HUD.tscn" id="4_4y3se"]
-[ext_resource type="PackedScene" uid="uid://c2vrgjhwxyecm" path="res://Scenes/Game/ResearchPanel.tscn" id="6_pudua"]
+[ext_resource type="PackedScene" uid="uid://cup45b2kq8xy7" path="res://Scenes/Game/ResearchPanel.tscn" id="6_pudua"]
 [ext_resource type="PackedScene" uid="uid://cl67yq6fc3rwj" path="res://Scenes/Game/ColonizeDialog.tscn" id="7"]
 [ext_resource type="PackedScene" uid="uid://bf3vo5k7efqdq" path="res://Scenes/Game/TradePanel.tscn" id="8"]
+[ext_resource type="PackedScene" uid="uid://bs7bwptfq5bvb" path="res://Scenes/Game/AdvisorPanel.tscn" id="9_hwplr"]
+[ext_resource type="PackedScene" uid="uid://dg3p4v5y0w162" path="res://Scenes/Game/MilitaryPanel.tscn" id="10"]
+[ext_resource type="PackedScene" uid="uid://c6jfq7nmlm6pk" path="res://Scenes/Game/CombatReport.tscn" id="11"]
+[ext_resource type="PackedScene" uid="uid://bc5rndsqnpghb" path="res://Scenes/Game/BattleScene.tscn" id="13"]
+[ext_resource type="PackedScene" uid="uid://jt5mndq0fpb3" path="res://Scenes/Game/CommanderPanel.tscn" id="14"]
 
 [node name="Game" type="Control"]
 layout_mode = 3
@@ -25,3 +34,259 @@ visible = false
 [node name="ResearchPanel" parent="." instance=ExtResource("6_pudua")]
 [node name="ColonizeDialog" parent="." instance=ExtResource("7")]
 [node name="TradePanel" parent="." instance=ExtResource("8")]
+[node name="AdvisorPanel" parent="." instance=ExtResource("9_hwplr")]
+[node name="MilitaryPanel" parent="." instance=ExtResource("10")]
+[node name="CombatReport" parent="." instance=ExtResource("11")]
+[node name="BattleScene" parent="." instance=ExtResource("13")]
+[node name="CommanderPanel" parent="." instance=ExtResource("14")]
+
+[node name="QuestPanel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250
+offset_top = -175
+offset_right = 250
+offset_bottom = 175
+color = Color(0.1, 0.1, 0.16, 0.92)
+script = ExtResource("15")
+
+[node name="VBox" type="VBoxContainer" parent="QuestPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 6
+
+[node name="Header" type="HBoxContainer" parent="QuestPanel/VBox"]
+layout_mode = 2
+
+[node name="IconBox" type="CenterContainer" parent="QuestPanel/VBox/Header"]
+layout_mode = 2
+custom_minimum_size = Vector2(36, 36)
+
+[node name="Icon" type="TextureRect" parent="QuestPanel/VBox/Header/IconBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(44, 44)
+expand_mode = 1
+stretch_mode = 0
+
+[node name="Title" type="Label" parent="QuestPanel/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.9, 0.85, 0.6, 1)
+text = "ماموریت‌ها"
+vertical_alignment = 1
+
+[node name="CloseBtn" type="TextureButton" parent="QuestPanel/VBox/Header"]
+layout_mode = 2
+custom_minimum_size = Vector2(44, 44)
+
+[node name="TabBar" type="HBoxContainer" parent="QuestPanel/VBox"]
+layout_mode = 2
+
+[node name="ActiveBtn" type="Button" parent="QuestPanel/VBox/TabBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "فعال"
+toggle_mode = true
+button_pressed = true
+
+[node name="CompletedBtn" type="Button" parent="QuestPanel/VBox/TabBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "تکمیل شده"
+toggle_mode = true
+
+[node name="Scroll" type="ScrollContainer" parent="QuestPanel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="QuestContainer" type="VBoxContainer" parent="QuestPanel/VBox/Scroll"]
+layout_mode = 2
+
+[node name="EventPanel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200
+offset_top = -120
+offset_right = 200
+offset_bottom = 120
+color = Color(0.1, 0.1, 0.16, 0.92)
+script = ExtResource("16")
+
+[node name="VBox" type="VBoxContainer" parent="EventPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 6
+
+[node name="Header" type="HBoxContainer" parent="EventPanel/VBox"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="EventPanel/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.9, 0.85, 0.6, 1)
+text = "رویدادها"
+vertical_alignment = 1
+
+[node name="CloseBtn" type="TextureButton" parent="EventPanel/VBox/Header"]
+layout_mode = 2
+custom_minimum_size = Vector2(44, 44)
+
+[node name="Scroll" type="ScrollContainer" parent="EventPanel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="EventContainer" type="VBoxContainer" parent="EventPanel/VBox/Scroll"]
+layout_mode = 2
+
+[node name="DailyReward" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180
+offset_top = -140
+offset_right = 180
+offset_bottom = 140
+color = Color(0.1, 0.1, 0.16, 0.92)
+script = ExtResource("17")
+
+[node name="VBox" type="VBoxContainer" parent="DailyReward"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="DailyReward/VBox"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="DailyReward/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.9, 0.85, 0.6, 1)
+text = "جایزه روزانه"
+vertical_alignment = 1
+
+[node name="CloseBtn" type="TextureButton" parent="DailyReward/VBox/Header"]
+layout_mode = 2
+custom_minimum_size = Vector2(44, 44)
+
+[node name="DayLabel" type="Label" parent="DailyReward/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+text = "روز ۱ از ۷"
+
+[node name="RewardLabel" type="Label" parent="DailyReward/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+text = ""
+
+[node name="ClaimBtn" type="Button" parent="DailyReward/VBox"]
+layout_mode = 2
+text = "دریافت جایزه"
+
+[node name="ExitDialog" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180
+offset_top = -80
+offset_right = 180
+offset_bottom = 80
+color = Color(0.1, 0.1, 0.16, 0.95)
+visible = false
+
+[node name="VBox" type="VBoxContainer" parent="ExitDialog"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="ExitDialog/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.9, 0.85, 0.6, 1)
+horizontal_alignment = 1
+text = "خروج از بازی"
+
+[node name="Msg" type="Label" parent="ExitDialog/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+text = "آیا می‌خواهید از بازی خارج شوید؟"
+
+[node name="ConfirmBtn" type="Button" parent="ExitDialog/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 48)
+text = "خروج و ذخیره"
+
+[node name="CancelBtn" type="Button" parent="ExitDialog/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 48)
+text = "انصراف"
+
+[node name="AllyPanel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200
+offset_top = -150
+offset_right = 200
+offset_bottom = 150
+color = Color(0.1, 0.1, 0.16, 0.92)
+script = ExtResource("12")
+visible = false
+
+[node name="VBox" type="VBoxContainer" parent="AllyPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="AllyPanel/VBox"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="AllyPanel/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.9, 0.85, 0.6, 1)
+text = "اتحادها"
+vertical_alignment = 1
+
+[node name="CloseBtn" type="TextureButton" parent="AllyPanel/VBox/Header"]
+layout_mode = 2
+custom_minimum_size = Vector2(44, 44)
+
+[node name="NoAllianceLabel" type="Label" parent="AllyPanel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+text = "هیچ اتحادی فعال نیست"

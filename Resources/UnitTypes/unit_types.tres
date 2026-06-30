@@ -1,0 +1,6 @@
+[gd_resource type="Resource" load_steps=2 format=3 uid="uid://bx8lq6n4p1vq6"]
+
+[ext_resource type="Script" path="res://Scripts/Military/MilitaryManager.gd" id="1_nf4aq"]
+
+[resource]
+script = ExtResource("1_nf4aq")

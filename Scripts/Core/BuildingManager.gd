@@ -1,7 +1,15 @@
 extends Node
 
+signal builder_status_changed(available: int, total: int)
+signal build_started(city_id: String, building_id: String, grid_pos: Vector2i)
+signal build_completed(city_id: String, building_id: String, grid_pos: Vector2i)
+
+const BASE_BUILDERS: int = 1
+const MAX_BUILDERS: int = 2
+
 var _building_definitions: Dictionary = {}
 var _construction_queue: Array = []
+var _extra_builders: int = 0
 
 const TIER_BUILD_TIME: Dictionary = {
 	1: 5.0,
@@ -458,6 +466,68 @@ func _load_building_definitions() -> void:
 			"description": "ساخت واحدهای پرنده (ژیروکوپتر و بالن)",
 			"requires_research": ["aerial_warfare"],
 			"units_trainable": ["gyrocopter", "balloon_bombardier"]
+		},
+		"watchtower": {
+			"name": "برج دیده‌بانی",
+			"category": Globals.BuildingCategory.MILITARY,
+			"tier": 1,
+			"size": Vector2i(2, 2),
+			"max_level": 5,
+			"costs": { Globals.ResourceType.WOOD: 30, Globals.ResourceType.GOLD: 20 },
+			"upgrade_costs": { Globals.ResourceType.WOOD: 35, Globals.ResourceType.GOLD: 25, Globals.ResourceType.STONE: 10 },
+			"description": "افزایش دید و شناسایی حملات زودهنگام",
+			"requires_research": [],
+			"sight_range_per_level": 20
+		},
+		"cannon": {
+			"name": "توپ دفاعی",
+			"category": Globals.BuildingCategory.MILITARY,
+			"tier": 3,
+			"size": Vector2i(2, 2),
+			"max_level": 10,
+			"costs": { Globals.ResourceType.WOOD: 80, Globals.ResourceType.GOLD: 100, Globals.ResourceType.SULFUR: 30 },
+			"upgrade_costs": { Globals.ResourceType.WOOD: 100, Globals.ResourceType.GOLD: 120, Globals.ResourceType.SULFUR: 40 },
+			"description": "آسیب به واحدهای مهاجم در هر راند نبرد",
+			"requires_research": ["gunpowder"],
+			"garrison_attack_per_level": 15,
+			"garrison_defense_per_level": 5
+		},
+		"harbor_chain": {
+			"name": "زنجیر بندر",
+			"category": Globals.BuildingCategory.MILITARY,
+			"tier": 3,
+			"size": Vector2i(2, 2),
+			"max_level": 3,
+			"costs": { Globals.ResourceType.WOOD: 120, Globals.ResourceType.GOLD: 150, Globals.ResourceType.MARBLE: 50 },
+			"upgrade_costs": { Globals.ResourceType.WOOD: 150, Globals.ResourceType.GOLD: 180, Globals.ResourceType.MARBLE: 60 },
+			"description": "جلوگیری از ورود کشتی‌های دشمن به بندر",
+			"requires_research": ["naval_engineering"],
+			"block_chance_per_level": 20,
+			"naval_damage_per_level": 10
+		},
+		"vault": {
+			"name": "خزانه",
+			"category": Globals.BuildingCategory.INFRASTRUCTURE,
+			"tier": 1,
+			"size": Vector2i(2, 2),
+			"max_level": 10,
+			"costs": { Globals.ResourceType.WOOD: 20, Globals.ResourceType.GOLD: 15, Globals.ResourceType.STONE: 10 },
+			"upgrade_costs": { Globals.ResourceType.WOOD: 25, Globals.ResourceType.GOLD: 20, Globals.ResourceType.STONE: 15 },
+			"description": "محافظت از منابع در برابر غارت - هر سطح ۵٪ محافظت",
+			"requires_research": [],
+			"protection_per_level": 5
+		},
+		"city_wall": {
+			"name": "دیوار شهر",
+			"category": Globals.BuildingCategory.INFRASTRUCTURE,
+			"tier": 2,
+			"size": Vector2i(3, 1),
+			"max_level": 20,
+			"costs": { Globals.ResourceType.WOOD: 50, Globals.ResourceType.GOLD: 30, Globals.ResourceType.STONE: 40 },
+			"upgrade_costs": { Globals.ResourceType.WOOD: 60, Globals.ResourceType.GOLD: 40, Globals.ResourceType.STONE: 50 },
+			"description": "افزایش دفاع کلی شهر - هر سطح ۵٪ دفاع بیشتر",
+			"requires_research": ["masonry"],
+			"wall_defense_bonus_per_level": 5
 		}
 	}
 
@@ -539,6 +609,33 @@ func get_wall_defense(city_id: String) -> float:
 			return base + per_level * b.get("level", 0)
 	return 0.0
 
+func get_available_builders() -> int:
+	return BASE_BUILDERS + _extra_builders
+
+func get_max_builders() -> int:
+	return MAX_BUILDERS
+
+func add_extra_builder() -> bool:
+	if _extra_builders + BASE_BUILDERS >= MAX_BUILDERS:
+		return false
+	_extra_builders += 1
+	builder_status_changed.emit(get_available_builders(), MAX_BUILDERS)
+	return true
+
+func get_active_constructions(city_id: String) -> int:
+	var count = 0
+	var city = GameState.current_cities.get(city_id)
+	if not city:
+		return 0
+	for pos in city.get("buildings", {}):
+		var b = city["buildings"][pos]
+		if b.get("constructing", false) or b.get("upgrading", false):
+			count += 1
+	return count
+
+func can_start_new_construction(city_id: String) -> bool:
+	return get_active_constructions(city_id) < get_available_builders()
+
 func get_trade_contracts(city_id: String) -> int:
 	var city = GameState.current_cities.get(city_id)
 	if not city:
@@ -599,6 +696,10 @@ func place_building(city_id: String, building_id: String, grid_pos: Vector2i) ->
 		push_warning("Cannot place building: ", check.reason)
 		return false
 
+	if not can_start_new_construction(city_id):
+		push_warning("No available builders for city: ", city_id)
+		return false
+
 	var defn = _building_definitions[building_id]
 	var size = defn.get("size", Vector2i(1, 1))
 	var city = GameState.current_cities[city_id]
@@ -649,7 +750,14 @@ func upgrade_building(city_id: String, grid_pos: Vector2i) -> bool:
 	if not building_data:
 		return false
 
+	if not building_data.get("constructed", false):
+		return false
+
 	if building_data.get("upgrading", false):
+		return false
+
+	if not can_start_new_construction(city_id):
+		push_warning("No available builders for upgrade in city: ", city_id)
 		return false
 
 	var defn = _building_definitions.get(building_data.id)

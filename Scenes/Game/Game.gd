@@ -6,11 +6,45 @@ extends Control
 @onready var research_panel: Control = $ResearchPanel
 @onready var colonize_dialog: Panel = $ColonizeDialog
 @onready var trade_panel: Panel = $TradePanel
+@onready var exit_dialog: Panel = $ExitDialog
+@onready var ally_panel: Panel = $AllyPanel
+@onready var quest_panel: Panel = $QuestPanel
+@onready var event_panel: Panel = $EventPanel
+@onready var daily_reward: Panel = $DailyReward
+@onready var commander_panel: Panel = $CommanderPanel
+@onready var battle_scene: Control = $BattleScene
 
 var _current_view: String = "city"
 
 func _ready() -> void:
 	EventBus.game_loaded.connect(_on_game_loaded)
+	if exit_dialog:
+		exit_dialog.hide()
+		$ExitDialog/VBox/ConfirmBtn.pressed.connect(_on_exit_confirm)
+		$ExitDialog/VBox/CancelBtn.pressed.connect(_on_exit_cancel)
+	if ally_panel:
+		ally_panel.hide()
+	if quest_panel:
+		quest_panel.hide()
+	if event_panel:
+		event_panel.hide()
+	if daily_reward:
+		daily_reward.hide()
+	if commander_panel:
+		commander_panel.hide()
+	if battle_scene:
+		battle_scene.hide()
+	BeginnerProtection.start_protection()
+	QuestSystem.check_login()
+	_check_daily_reward()
+	update_all()
+	AudioManager.play_main_theme()
+	var amb_timer = Timer.new()
+	amb_timer.wait_time = 30.0 + randi() % 30
+	amb_timer.one_shot = false
+	amb_timer.timeout.connect(AudioManager.play_ambient_ocean)
+	add_child(amb_timer)
+	amb_timer.start()
 
 func _on_game_loaded() -> void:
 	update_all()
@@ -45,19 +79,45 @@ func update_hud() -> void:
 	if hud:
 		hud.update_display()
 
+func _on_exit_confirm() -> void:
+	AudioManager.play_button_click()
+	SaveManager.save_game(0)
+	get_tree().change_scene_to_file("res://Scenes/Menu/MainMenu.tscn")
+
+func _on_exit_cancel() -> void:
+	AudioManager.play_button_click()
+	if exit_dialog:
+		exit_dialog.hide()
+
+func _check_daily_reward() -> void:
+	if daily_reward and daily_reward.has_method("check_and_show"):
+		daily_reward.check_and_show()
+
 func _process(_delta: float) -> void:
 	if Input.is_action_just_pressed("ui_cancel"):
-		if trade_panel and trade_panel.visible:
+		if battle_scene and battle_scene.visible:
+			battle_scene.hide()
+		elif commander_panel and commander_panel.visible:
+			commander_panel.hide()
+		elif quest_panel and quest_panel.visible:
+			quest_panel.hide()
+		elif event_panel and event_panel.visible:
+			event_panel.hide()
+		elif ally_panel and ally_panel.visible:
+			ally_panel.hide()
+		elif trade_panel and trade_panel.visible:
 			trade_panel.hide()
 		elif colonize_dialog and colonize_dialog.visible:
 			colonize_dialog.hide()
 		elif research_panel and research_panel.visible:
 			research_panel.hide()
+		elif exit_dialog and exit_dialog.visible:
+			exit_dialog.hide()
 		elif _current_view == "world":
 			switch_to_city_view()
 		else:
-			SaveManager.save_game(0)
-			get_tree().change_scene_to_file("res://Scenes/Menu/MainMenu.tscn")
+			if exit_dialog:
+				exit_dialog.show()
 	elif Input.is_action_just_pressed("map_toggle"):
 		if _current_view == "city":
 			switch_to_world_map()

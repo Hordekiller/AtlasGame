@@ -5,6 +5,36 @@ const BOTTOM_BAR_HEIGHT: float = 88.0
 const PANEL_PADDING: int = 8
 const BUTTON_MIN_SIZE: int = 44
 
+static func get_top_bar_h() -> float:
+	if not ResponsiveLayout:
+		return TOP_BAR_HEIGHT
+	return ResponsiveLayout.get_top_bar_h()
+
+static func get_bottom_bar_h() -> float:
+	if not ResponsiveLayout:
+		return BOTTOM_BAR_HEIGHT
+	return ResponsiveLayout.get_bottom_bar_h()
+
+static func get_tile_sz() -> float:
+	if not ResponsiveLayout:
+		return 64.0
+	return ResponsiveLayout.get_tile_size()
+
+static func get_scale() -> float:
+	if not ResponsiveLayout:
+		return 1.0
+	return ResponsiveLayout.scale_factor
+
+static func get_font_size(base: int) -> int:
+	if not ResponsiveLayout:
+		return base
+	return ResponsiveLayout.font_size(base)
+
+static func get_grid_columns() -> int:
+	if not ResponsiveLayout:
+		return 4
+	return ResponsiveLayout.get_building_grid_columns()
+
 var _top_bar_bg: StyleBoxFlat
 var _bottom_bar_bg: StyleBoxFlat
 var _panel_bg: StyleBoxFlat
@@ -121,8 +151,11 @@ func style_button(btn: Button) -> void:
 	btn.add_theme_stylebox_override("disabled", _button_disabled)
 	btn.add_theme_color_override("font_color", Color(0.9, 0.9, 0.95))
 	btn.add_theme_color_override("font_disabled_color", Color(0.5, 0.5, 0.5))
-	btn.add_theme_font_size_override("font_size", 13)
-	btn.custom_minimum_size = Vector2(BUTTON_MIN_SIZE, 36)
+	var fs = get_font_size(13)
+	btn.add_theme_font_size_override("font_size", fs)
+	var s = get_scale()
+	var min_h = maxi(36, int(36 * s))
+	btn.custom_minimum_size = Vector2(BUTTON_MIN_SIZE * s, min_h)
 
 func style_panel(panel: Panel) -> void:
 	panel.add_theme_stylebox_override("panel", _panel_bg)
@@ -147,8 +180,8 @@ func make_resource_icon(rtype: int) -> TextureRect:
 	var tex = get_icon(path)
 	if tex:
 		icon.texture = tex
-	icon.custom_minimum_size = Vector2(20, 20)
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var s = get_scale()
+	icon.custom_minimum_size = Vector2(20 * s, 20 * s)
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	return icon
 

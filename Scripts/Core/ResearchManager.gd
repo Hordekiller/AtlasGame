@@ -578,4 +578,15 @@ func _complete_research(city_id: String, city: Dictionary, tech_id: String) -> v
 		city["research_completed"] = []
 	city["research_completed"].append(tech_id)
 
+	var defn = _research_tree.get(tech_id, {})
+	var effects = defn.get("effects", {})
+	if effects.has("unlock_unit"):
+		var unit_id = effects["unlock_unit"]
+		if not GameState.current_units.has(unit_id):
+			GameState.current_units[unit_id] = {"count": 0, "unlocked": true}
+		if not city.has("unlocked_units"):
+			city["unlocked_units"] = []
+		if unit_id not in city["unlocked_units"]:
+			city["unlocked_units"].append(unit_id)
+
 	EventBus.research_completed.emit(tech_id)

@@ -11,9 +11,13 @@ extends Panel
 @onready var worker_dec_btn: TextureButton = $VBox/WorkerHBox/WorkerDec
 @onready var worker_count_label: Label = $VBox/WorkerHBox/WorkerCount
 @onready var worker_inc_btn: TextureButton = $VBox/WorkerHBox/WorkerInc
+@onready var worker_slider: HSlider = $VBox/WorkerHBox/WorkerSlider
 @onready var upgrade_btn: Button = $VBox/UpgradeBtn
 @onready var demolish_btn: Button = $VBox/DemolishBtn
 @onready var production_container: VBoxContainer = $VBox/ProductionContainer
+@onready var training_label: Label = $VBox/TrainingLabel
+@onready var training_scroll: ScrollContainer = $VBox/TrainingScroll
+@onready var training_container: VBoxContainer = $VBox/TrainingScroll/TrainingContainer
 
 var _current_city_id: String = ""
 var _current_grid_pos: Vector2i = Vector2i(-1, -1)
@@ -36,6 +40,15 @@ func _ready() -> void:
 	UITheme.style_button(demolish_btn)
 	_style_worker_buttons()
 	hide()
+	get_viewport().size_changed.connect(_update_responsive)
+
+func _update_responsive() -> void:
+	var vp = get_viewport().get_visible_rect()
+	var pct = 0.3 if vp.size.x >= 1280 else 0.35
+	custom_minimum_size.x = vp.size.x * pct
+	size.x = vp.size.x * pct
+	var max_h = vp.size.y - ResponsiveLayout.get_top_bar_h() - ResponsiveLayout.get_bottom_bar_h() - 20
+	size.y = min(size.y, max_h)
 
 func _style_worker_buttons() -> void:
 	for btn in [worker_dec_btn, worker_inc_btn]:
@@ -43,6 +56,7 @@ func _style_worker_buttons() -> void:
 			btn.texture_normal = ResourceLoader.load("res://Assets/Textures/UI/btn_min.png")
 		if ResourceLoader.exists("res://Assets/Textures/UI/btn_max.png"):
 			btn.texture_pressed = ResourceLoader.load("res://Assets/Textures/UI/btn_max.png")
+	worker_slider.drag_ended.connect(_on_worker_slider_drag)
 
 func show_for_building(city_id: String, grid_pos: Vector2i) -> void:
 	_current_city_id = city_id
@@ -97,7 +111,16 @@ func _update_all() -> void:
 
 	desc_label.text = _current_defn.get("description", "")
 
-	upgrade_btn.disabled = constructing or upgrading
+	var can_afford = true
+	if not constructing and not upgrading:
+		var upgrade_costs = _current_defn.get("upgrade_costs", {})
+		var actual_costs = {}
+		for rtype in upgrade_costs:
+			actual_costs[rtype] = upgrade_costs[rtype] * level
+		if not actual_costs.is_empty():
+			can_afford = EconomyManager.can_afford(_current_city_id, actual_costs)
+
+	upgrade_btn.disabled = constructing or upgrading or not can_afford
 	if constructing:
 		upgrade_btn.text = "در حال ساخت..."
 	elif upgrading:
@@ -105,6 +128,8 @@ func _update_all() -> void:
 	elif level >= _current_defn.get("max_level", 10):
 		upgrade_btn.disabled = true
 		upgrade_btn.text = "حداکثر سطح"
+	elif not can_afford:
+		upgrade_btn.text = "منابع کافی نیست"
 	else:
 		upgrade_btn.text = "ارتقاء ⬆"
 
@@ -112,6 +137,7 @@ func _update_all() -> void:
 
 	_update_worker_display()
 	_update_production_display()
+	_update_training_display()
 
 func _update_worker_display() -> void:
 	var level = _current_building_data.get("level", 1)
@@ -130,6 +156,11 @@ func _update_worker_display() -> void:
 		worker_count_label.text = "%d / %d" % [assigned, needed]
 		worker_dec_btn.disabled = assigned <= 0
 		worker_inc_btn.disabled = assigned >= needed or available <= 0
+		worker_slider.min_value = 0
+		worker_slider.max_value = needed
+		worker_slider.value = assigned
+		worker_slider.step = 1
+		worker_slider.editable = true
 
 func _update_production_display() -> void:
 	for child in production_container.get_children():
@@ -207,6 +238,15 @@ func _on_worker_dec() -> void:
 		_update_production_display()
 		_update_building_scene_workers()
 
+func _on_worker_slider_drag(_changed: bool) -> void:
+	var new_val = int(worker_slider.value)
+	var assigned = _current_building_data.get("workers_assigned", 0)
+	if new_val != assigned:
+		BuildingManager.set_workers(_current_city_id, _current_grid_pos, new_val)
+		_update_worker_display()
+		_update_production_display()
+		_update_building_scene_workers()
+
 func _update_building_scene_workers() -> void:
 	var city_view = get_tree().get_first_node_in_group("city_view")
 	if city_view and is_instance_valid(city_view):
@@ -233,13 +273,85 @@ func _on_upgrade() -> void:
 	if _current_grid_pos.x >= 0:
 		var result = BuildingManager.upgrade_building(_current_city_id, _current_grid_pos)
 		if result:
+			AudioManager.play_upgrade()
 			UIManager.show_notification("ارتقاء شروع شد!", "success")
 		else:
+			AudioManager.play_error()
 			UIManager.show_notification("خطا در ارتقاء ساختمان", "error")
 
 func _on_demolish() -> void:
 	if _current_grid_pos.x >= 0:
 		var result = BuildingManager.demolish_building(_current_city_id, _current_grid_pos)
 		if result:
+			AudioManager.play_build()
 			UIManager.show_notification("ساختمان تخریب شد", "info")
 			hide()
+
+func _update_training_display() -> void:
+	var building_id = _current_building_data.get("id", "")
+	var train_buildings = ["barracks", "shipyard", "port", "flying_machine_workshop"]
+	var is_trainer = train_buildings.has(building_id)
+	var is_constructing = _current_building_data.get("constructing", false)
+	var is_upgrading = _current_building_data.get("upgrading", false)
+
+	training_label.visible = is_trainer and not is_constructing and not is_upgrading
+	training_scroll.visible = is_trainer and not is_constructing and not is_upgrading
+
+	if not training_label.visible:
+		return
+
+	for child in training_container.get_children():
+		child.queue_free()
+
+	var units = MilitaryManager.get_units_for_building(building_id)
+	if units.is_empty():
+		var lbl = Label.new()
+		lbl.text = "هیچ واحدی در دسترس نیست"
+		lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+		lbl.add_theme_font_size_override("font_size", 11)
+		training_container.add_child(lbl)
+		return
+
+	for unit_type in units:
+		var defn = MilitaryManager.get_unit_def(unit_type)
+		var city_data = GameState.current_cities.get(_current_city_id, {})
+		var city_units = city_data.get("units", {})
+		var existing = city_units.get(unit_type, {})
+		var count = existing.get("count", 0)
+		var training = existing.get("training", 0)
+
+		var hbox = HBoxContainer.new()
+
+		var info = Label.new()
+		var cost_str = ""
+		var costs = defn.get("cost", {})
+		for rtype in costs:
+			if not cost_str.is_empty():
+				cost_str += ", "
+			cost_str += "%d %s" % [costs[rtype], Globals.RESOURCE_DISPLAY_NAMES.get(rtype, str(rtype))]
+
+		var can_afford = EconomyManager.can_afford(_current_city_id, costs)
+		var unit_name = defn.get("name", unit_type)
+		info.text = "%s (موجود: %d | در آموزش: %d)\nهزینه: %s" % [unit_name, count, training, cost_str]
+		info.add_theme_font_size_override("font_size", 10)
+		info.size_flags_horizontal = SIZE_EXPAND_FILL
+		info.autowrap_mode = TextServer.AUTOWRAP_WORD
+		hbox.add_child(info)
+
+		var train_btn = Button.new()
+		train_btn.text = "آموزش ۱"
+		train_btn.disabled = not can_afford
+		UITheme.style_button(train_btn)
+		train_btn.pressed.connect(_on_train_unit.bind(unit_type, 1))
+		hbox.add_child(train_btn)
+
+		training_container.add_child(hbox)
+
+func _on_train_unit(unit_type: String, count: int) -> void:
+	var result = MilitaryManager.train_units(_current_city_id, unit_type, count)
+	if result:
+		AudioManager.play_build()
+		UIManager.show_notification("آموزش واحد شروع شد!", "success")
+		_update_training_display()
+	else:
+		UIManager.show_notification("منابع کافی نیست!", "error")

@@ -67,25 +67,25 @@ theme_override_constants/separation = 10
 
 [node name="NewGameBtn" type="Button" parent="CenterBox/VBox"]
 layout_mode = 2
-custom_minimum_size = Vector2(220, 48)
+custom_minimum_size = Vector2(260, 56)
 text = "شروع بازی جدید"
 horizontal_alignment = 1
 
 [node name="LoadGameBtn" type="Button" parent="CenterBox/VBox"]
 layout_mode = 2
-custom_minimum_size = Vector2(220, 48)
+custom_minimum_size = Vector2(260, 56)
 text = "ادامه بازی"
 horizontal_alignment = 1
 
 [node name="SettingsBtn" type="Button" parent="CenterBox/VBox"]
 layout_mode = 2
-custom_minimum_size = Vector2(220, 48)
+custom_minimum_size = Vector2(260, 56)
 text = "تنظیمات"
 horizontal_alignment = 1
 
 [node name="QuitBtn" type="Button" parent="CenterBox/VBox"]
 layout_mode = 2
-custom_minimum_size = Vector2(220, 48)
+custom_minimum_size = Vector2(260, 56)
 text = "خروج"
 horizontal_alignment = 1
 

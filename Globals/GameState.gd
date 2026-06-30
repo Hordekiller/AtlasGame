@@ -43,7 +43,10 @@ func to_dict() -> Dictionary:
 		"game_time": game_time,
 		"current_day": current_day,
 		"player_gold": player_gold,
-		"player_gems": player_gems
+		"player_gems": player_gems,
+		"time_speed": time_speed,
+		"selected_city_id": selected_city_id,
+		"selected_building_pos": selected_building_pos
 	}
 
 func from_dict(data: Dictionary) -> void:
@@ -58,3 +61,6 @@ func from_dict(data: Dictionary) -> void:
 	current_day = data.get("current_day", 1)
 	player_gold = data.get("player_gold", 500.0)
 	player_gems = data.get("player_gems", 0.0)
+	time_speed = data.get("time_speed", 1.0)
+	selected_city_id = data.get("selected_city_id", "")
+	selected_building_pos = data.get("selected_building_pos", Vector2i(-1, -1))

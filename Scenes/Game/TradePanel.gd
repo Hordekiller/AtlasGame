@@ -18,14 +18,41 @@ func _ready() -> void:
 	UITheme.style_button(close_btn)
 	close_btn.pressed.connect(_on_close)
 	create_btn.pressed.connect(_on_create_route)
+	get_viewport().size_changed.connect(_update_responsive)
+
+func _update_responsive() -> void:
+	var vp = get_viewport().get_visible_rect()
+	var sz = ResponsiveLayout.clamp_modal_size(Vector2(min(500, vp.size.x * 0.85), min(400, vp.size.y * 0.75)))
+	custom_minimum_size = sz
+	size = sz
 
 func open(city_id: String) -> void:
 	_current_city_id = city_id
 	title.text = "تجارت - " + GameState.current_cities.get(city_id, {}).get("name", "")
+
+	var has_port = _city_has_building(city_id, "port")
+	var has_shipyard = _city_has_building(city_id, "shipyard")
+	var can_trade = has_port or has_shipyard
+
+	create_btn.disabled = not can_trade
+	if not can_trade:
+		create_btn.text = "نیاز به بندر یا کارخانه کشتی‌سازی"
+	else:
+		create_btn.text = "ایجاد مسیر تجاری"
+
 	_populate_city_options()
 	_populate_resource_options()
 	_refresh_routes()
 	show()
+
+func _city_has_building(city_id: String, building_id: String) -> bool:
+	var city = GameState.current_cities.get(city_id)
+	if not city:
+		return false
+	for data in city.get("buildings", {}).values():
+		if data.get("id") == building_id and data.get("constructed", false):
+			return true
+	return false
 
 func _populate_city_options() -> void:
 	var player_cities = WorldManager.find_player_cities()
@@ -101,6 +128,18 @@ func _on_create_route() -> void:
 	var amount = amount_input.value
 	if amount <= 0:
 		return
+
+	# Apply marketplace ratio — gold cost for trade based on resource type
+	if Globals.MARKETPLACE_RATIOS.has(rtype):
+		var src_city = GameState.current_cities.get(src, {})
+		var gold = src_city.get("resources", {}).get(Globals.ResourceType.GOLD, 0.0)
+		var cost = amount * Globals.MARKETPLACE_RATIOS[rtype] * 0.1
+		if gold < cost:
+			EventBus.notification_added.emit("طلا کافی برای پرداخت هزینه تجارت!", "warning")
+			return
+		EconomyManager.change_resource(src, Globals.ResourceType.GOLD, -cost)
+
+	AudioManager.play_trade()
 	WorldManager.add_trade_route(src, dst, rtype, amount)
 	EventBus.notification_added.emit("مسیر تجاری ایجاد شد!", "success")
 	_refresh_routes()
