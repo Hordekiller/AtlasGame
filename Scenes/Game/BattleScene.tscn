@@ -44,7 +44,7 @@ offset_top = 8
 offset_right = 300
 offset_bottom = 28
 theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.3, 0.7, 1.0)
+theme_override_colors/font_color = Color(0.3, 0.7, 1.0, 1.0)
 text = "مهاجم"
 
 [node name="DefenderLabel" type="Label" parent="VBox/TopBar"]
@@ -54,7 +54,7 @@ offset_top = 32
 offset_right = 300
 offset_bottom = 52
 theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(1.0, 0.3, 0.3)
+theme_override_colors/font_color = Color(1.0, 0.3, 0.3, 1.0)
 text = "مدافع"
 
 [node name="RoundLabel" type="Label" parent="VBox/TopBar"]

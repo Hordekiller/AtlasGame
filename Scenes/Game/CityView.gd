@@ -3,6 +3,8 @@ extends Node2D
 const TILE_SIZE: int = 64
 const GRID_LINE_COLOR: Color = Color(0.3, 0.3, 0.35, 0.3)
 const GRID_SIZE: int = 16
+const ZOOM_MIN: float = 0.15
+const ZOOM_MAX: float = 2.0
 
 const BUILDING_SCENE = preload("res://Scenes/Building/Building.tscn")
 
@@ -48,13 +50,67 @@ func _setup_water_shader() -> void:
 			bg.material = mat
 
 func _update_camera_for_viewport() -> void:
-	var vp = get_viewport().get_visible_rect()
 	var ts = ResponsiveLayout.get_tile_size()
-	_camera.position = Vector2(GRID_SIZE * ts * 0.5, GRID_SIZE * ts * 0.5)
-	var zoom_x = vp.size.x / (GRID_SIZE * ts * 1.5)
-	var zoom_y = vp.size.y / (GRID_SIZE * ts * 1.3)
-	var zoom = min(zoom_x, zoom_y)
-	_camera.zoom = Vector2(clampf(zoom, 0.4, 1.2), clampf(zoom, 0.4, 1.2))
+	var grid_size = GRID_SIZE * ts
+	var design = get_viewport().get_visible_rect().size
+	var window_size = _get_window_size()
+	var godot_scale = max(window_size.x / design.x, window_size.y / design.y)
+	var visible = window_size / godot_scale
+
+	var zoom_x = visible.x / (grid_size * 1.4)
+	var zoom_y = visible.y / (grid_size * 1.2)
+	var zoom = clampf(min(zoom_x, zoom_y), 0.3, 2.0)
+	_camera.zoom = Vector2(zoom, zoom)
+
+	var is_mobile = visible.x < design.x * 0.95 or visible.y < design.y * 0.95
+	if is_mobile:
+		_camera.position = Vector2(design.x / (2.0 * zoom), design.y / (2.0 * zoom))
+	else:
+		_camera.position = Vector2(grid_size * 0.5, grid_size * 0.5)
+	_clamp_camera(visible, is_mobile)
+
+func _get_window_size() -> Vector2:
+	if DisplayServer.get_name() != "headless":
+		var s = DisplayServer.window_get_size()
+		if s.x > 0 and s.y > 0:
+			return s
+	return get_viewport().get_visible_rect().size
+
+func _get_visible_design() -> Vector2:
+	var design = get_viewport().get_visible_rect().size
+	var window_size = _get_window_size()
+	var godot_scale = max(window_size.x / design.x, window_size.y / design.y)
+	return window_size / godot_scale
+
+func _clamp_camera(visible: Vector2, is_mobile: bool = false) -> void:
+	var ts = ResponsiveLayout.get_tile_size()
+	var grid_size = GRID_SIZE * ts
+	var design = get_viewport().get_visible_rect().size
+	var zoom = _camera.zoom.x
+	var hw = design.x / (2.0 * zoom)
+	var hh = design.y / (2.0 * zoom)
+
+	var min_x = hw
+	var max_x = grid_size - visible.x / zoom + hw
+	if min_x > max_x:
+		_camera.position.x = hw if is_mobile else grid_size * 0.5
+	else:
+		_camera.position.x = clampf(_camera.position.x, min_x, max_x)
+
+	var min_y = hh
+	var max_y = grid_size - visible.y / zoom + hh
+	if min_y > max_y:
+		_camera.position.y = hh if is_mobile else grid_size * 0.5
+	else:
+		_camera.position.y = clampf(_camera.position.y, min_y, max_y)
+
+func _clamp_camera_auto() -> void:
+	var design = get_viewport().get_visible_rect().size
+	var window_size = _get_window_size()
+	var godot_scale = max(window_size.x / design.x, window_size.y / design.y)
+	var visible = window_size / godot_scale
+	var is_mobile = visible.x < design.x * 0.95 or visible.y < design.y * 0.95
+	_clamp_camera(visible, is_mobile)
 
 func _on_city_selected(city_id: String) -> void:
 	_city_id = city_id
@@ -242,8 +298,10 @@ func _input(event: InputEvent) -> void:
 			event.accept()
 		elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			_camera.zoom *= 1.1
+			_clamp_camera_auto()
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_camera.zoom = max(0.3, _camera.zoom * 0.9)
+			_camera.zoom = max(ZOOM_MIN, _camera.zoom * 0.9)
+			_clamp_camera_auto()
 	elif event is InputEventMouseMotion:
 		if event.button_mask & MOUSE_BUTTON_MASK_LEFT:
 			var mp = get_global_mouse_position()
@@ -253,14 +311,17 @@ func _input(event: InputEvent) -> void:
 			if _is_dragging:
 				_camera.position -= delta / _camera.zoom.x
 				_drag_start = mp
+				_clamp_camera_auto()
 		else:
 			_hovered_tile = _screen_to_grid(get_global_mouse_position())
 			queue_redraw()
 	elif event is InputEventPanGesture:
 		_camera.position -= event.delta * 100 / _camera.zoom.x
+		_clamp_camera_auto()
 	elif event is InputEventMagnifyGesture:
 		var z = _camera.zoom * (1.0 / event.factor)
-		_camera.zoom = max(Vector2(0.3, 0.3), min(Vector2(5.0, 5.0), z))
+		_camera.zoom = max(Vector2(ZOOM_MIN, ZOOM_MIN), min(Vector2(ZOOM_MAX, ZOOM_MAX), z))
+		_clamp_camera_auto()
 
 func _screen_to_grid(sp: Vector2) -> Vector2i:
 	var local = sp - global_position

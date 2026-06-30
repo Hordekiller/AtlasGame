@@ -18,8 +18,38 @@ extends Control
 
 var _current_view: String = "city"
 
+func _get_visible_design() -> Vector2:
+	var design = get_viewport().get_visible_rect().size
+	if DisplayServer.get_name() != "headless":
+		var win = DisplayServer.window_get_size()
+		if win.x > 0 and win.y > 0:
+			var godot_scale = max(win.x / design.x, win.y / design.y)
+			return win / godot_scale
+	return design
+
+func _clamp_panel(p: Control) -> void:
+	var visible = _get_visible_design()
+	var rect = p.get_rect()
+	if rect.position.x < 0:
+		p.position.x = 0
+	if rect.position.y < 0:
+		p.position.y = 0
+	if rect.end.x > visible.x:
+		p.position.x = max(0, visible.x - rect.size.x)
+	if rect.end.y > visible.y:
+		p.position.y = max(0, visible.y - rect.size.y)
+
+func _on_panel_shown() -> void:
+	for p in get_children():
+		if p is Control and p.visible and p != hud and p != city_view and p != world_map:
+			_clamp_panel(p)
+
 func _ready() -> void:
 	EventBus.game_loaded.connect(_on_game_loaded)
+	for p in get_children():
+		if p is Control and p != hud and p != city_view and p != world_map:
+			if p.has_signal("visibility_changed"):
+				p.visibility_changed.connect(_on_panel_shown)
 	if exit_dialog:
 		exit_dialog.hide()
 		$ExitDialog/VBox/ConfirmBtn.pressed.connect(_on_exit_confirm)

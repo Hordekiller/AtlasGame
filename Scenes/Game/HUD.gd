@@ -60,11 +60,25 @@ func _ready() -> void:
 func _on_viewport_resized() -> void:
 	_update_responsive()
 
+func _get_actual_window_size() -> Vector2:
+	if DisplayServer.get_name() != "headless":
+		var s = DisplayServer.window_get_size()
+		if s.x > 0 and s.y > 0:
+			return s
+	return get_viewport().get_visible_rect().size
+
+func _is_mobile_like() -> bool:
+	var win = _get_actual_window_size()
+	var aspect = win.x / win.y
+	return win.x < 960 or aspect < 1.3
+
 func _update_responsive() -> void:
 	var s = ResponsiveLayout.scale_factor
+	var mobile = _is_mobile_like()
 	top_bar.custom_minimum_size.y = max(TOP_BAR_H, ResponsiveLayout.get_top_bar_h())
 	bottom_bar.custom_minimum_size.y = max(BOTTOM_BAR_H, ResponsiveLayout.get_bottom_bar_h())
 	palette_container.columns = ResponsiveLayout.get_building_grid_columns()
+
 	var ts = ResponsiveLayout.MIN_TOUCH_TARGET * s
 	for btn in action_buttons.get_children():
 		if btn is TextureButton:
@@ -75,6 +89,45 @@ func _update_responsive() -> void:
 	for btn in advisor_bar.get_children():
 		if btn is TextureButton:
 			btn.custom_minimum_size = Vector2(max(88, ts), max(88, ts))
+
+	if mobile:
+		var design = get_viewport().get_visible_rect().size
+		var win = _get_actual_window_size()
+		var godot_scale = max(win.x / design.x, win.y / design.y)
+		var visible = win / godot_scale
+
+		resource_container.offset_left = -min(300, visible.x * 0.35)
+		resource_container.offset_right = min(300, visible.x * 0.35)
+		resource_container.add_theme_constant_override("separation", 8)
+
+		var cb = cat_buttons.get_parent() as Control if cat_buttons and cat_buttons.get_parent() else null
+		if cb:
+			cb.offset_left = -min(400, visible.x * 0.4)
+			cb.offset_right = min(400, visible.x * 0.4)
+
+		advisor_bar.position = Vector2(8, 72)
+		advisor_bar.size = Vector2(56, min(580, visible.y - 160))
+		advisor_bar.add_theme_constant_override("separation", 4)
+		for btn in advisor_bar.get_children():
+			if btn is TextureButton:
+				btn.custom_minimum_size = Vector2(48, 48)
+
+		building_info.position = Vector2(max(4, visible.x - 380), 72)
+		building_info.size = Vector2(min(380, visible.x - 8), min(700, visible.y - 160))
+
+		notification_label.position = Vector2(8, 20)
+		notification_label.size = Vector2(visible.x - 16, 36)
+	else:
+		resource_container.offset_left = -380
+		resource_container.offset_right = 380
+		resource_container.add_theme_constant_override("separation", 20)
+
+		advisor_bar.position = Vector2(1540, 600)
+		advisor_bar.size = Vector2(372, 350)
+		advisor_bar.add_theme_constant_override("separation", 6)
+		for btn in advisor_bar.get_children():
+			if btn is TextureButton:
+				btn.custom_minimum_size = Vector2(88, 88)
 
 func _style_ui() -> void:
 	UITheme.style_panel(top_bar)

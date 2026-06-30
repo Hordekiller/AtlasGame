@@ -37,14 +37,28 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_update_responsive)
 	_update_responsive()
 
+func _get_visible_design() -> Vector2:
+	var design = get_viewport().get_visible_rect().size
+	if DisplayServer.get_name() != "headless":
+		var win = DisplayServer.window_get_size()
+		if win.x > 0 and win.y > 0:
+			var godot_scale = max(win.x / design.x, win.y / design.y)
+			return win / godot_scale
+	return design
+
 func _update_responsive() -> void:
 	var vp = get_viewport().get_visible_rect()
+	var visible = _get_visible_design()
 	var s = ResponsiveLayout.scale_factor if Engine.has_singleton("ResponsiveLayout") else 1.0
-	tooltip.custom_minimum_size = Vector2(min(400, vp.size.x * 0.8), 0)
-	tooltip.position = Vector2(vp.size.x * 0.5 - tooltip.custom_minimum_size.x * 0.5, vp.size.y * 0.15)
+	var tw = min(400, visible.x * 0.85)
+	tooltip.custom_minimum_size = Vector2(tw, 0)
+	tooltip.position = Vector2(visible.x * 0.5 - tw * 0.5, visible.y * 0.1)
+	tooltip.size = Vector2(tw, 0)
 	tooltip_label.add_theme_font_size_override("font_size", maxi(12, int(14 * s)))
-	next_btn.custom_minimum_size = Vector2(maxi(80, 120 * s), maxi(36, 44 * s))
-	skip_btn.custom_minimum_size = Vector2(maxi(60, 80 * s), maxi(36, 44 * s))
+	var btn_w = maxi(80, 120 * s)
+	var btn_h = maxi(36, 48 * s)
+	next_btn.custom_minimum_size = Vector2(btn_w, btn_h)
+	skip_btn.custom_minimum_size = Vector2(maxi(60, 80 * s), btn_h)
 
 func start_tutorial() -> void:
 	tutorial_active = true
