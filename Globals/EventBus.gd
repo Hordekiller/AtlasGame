@@ -27,6 +27,7 @@ signal notification_added(message: String, type: String)
 signal city_selected(city_id: String)
 signal building_selected(city_id: String, grid_pos: Vector2i)
 signal time_speed_changed(speed: float)
+signal npc_faction_defeated(faction_id: String)
 
 signal spy_mission_started(city_id: String, target_city_id: String, mission_type: String)
 signal spy_mission_completed(city_id: String, target_city_id: String, mission_type: String, success: bool, result: Dictionary)

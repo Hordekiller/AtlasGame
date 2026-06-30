@@ -15,5 +15,5 @@ func check_and_show() -> void:
 		var cfg = ConfigFile.new()
 		cfg.set_value("rate", "shown", true)
 		cfg.save("user://rate.cfg")
-		DisplayServer.dialog_show("AtlasGame", "از بازی لذت می‌برید؟ لطفاً امتیاز دهید!", "امتیاز", "بعداً")
+		DisplayServer.dialog_show("AtlasGame", "از بازی لذت می‌برید؟ لطفاً امتیاز دهید!", PackedStringArray(["امتیاز", "بعداً"]), Callable())
 		EventBus.notification_added.emit("لطفاً در فروشگاه به ما امتیاز دهید!", "info")

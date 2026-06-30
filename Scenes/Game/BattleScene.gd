@@ -269,8 +269,8 @@ func _show_result() -> void:
 		"draw": result_label.text = "تساوی"
 		_: result_label.text = status
 	var log = _battle_state.rounds_log if _battle_state else []
-	var atk_rem = CombatSystem._count_units(_battle_state.attacker) if _battle_state else 0
-	var def_rem = CombatSystem._count_units(_battle_state.defender) if _battle_state else 0
+	var atk_rem = CombatSystem.count_units(_battle_state.attacker) if _battle_state else 0
+	var def_rem = CombatSystem.count_units(_battle_state.defender) if _battle_state else 0
 	battle_completed.emit({
 		"status": status, "rounds": log,
 		"attacker_units_remaining": atk_rem,

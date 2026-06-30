@@ -1,9 +1,9 @@
 extends Panel
 
-const DAILY_REWARDS := [
+var DAILY_REWARDS := [
 	{Globals.ResourceType.GOLD: 100},
 	{Globals.ResourceType.WOOD: 150},
-	{Globals.ResourceType.RESEARCH_PTS: 50},
+	{Globals.ResourceType.RESEARCH_POINTS: 50},
 	{Globals.ResourceType.STONE: 100},
 	{Globals.ResourceType.WINE: 20},
 	{Globals.ResourceType.CRYSTAL: 15},

@@ -4,7 +4,7 @@ signal quest_started(quest_id: String)
 signal quest_completed(quest_id: String)
 signal quest_progress(quest_id: String, current: int, target: int)
 
-const STORY_QUESTS := {
+var STORY_QUESTS := {
 	"first_build": {
 		"name": "اولین ساختمان",
 		"description": "یک ساختمان در شهر خود بسازید",
@@ -34,7 +34,7 @@ const STORY_QUESTS := {
 		"category": "research",
 		"prerequisite": "first_upgrade",
 		"objectives": [{"type": "research", "target": 1}],
-		"rewards": {Globals.ResourceType.GOLD: 250, Globals.ResourceType.RESEARCH_PTS: 50}
+		"rewards": {Globals.ResourceType.GOLD: 250, Globals.ResourceType.RESEARCH_POINTS: 50}
 	},
 	"train_army": {
 		"name": "ارتش کوچک",
@@ -46,7 +46,7 @@ const STORY_QUESTS := {
 	}
 }
 
-const DAILY_QUESTS := {
+var DAILY_QUESTS := {
 	"gatherer": {
 		"name": "جمع‌آوری کننده",
 		"description": "۵۰۰ چوب جمع‌آوری کنید",
@@ -81,7 +81,7 @@ const DAILY_QUESTS := {
 		"name": "وفادار",
 		"description": "امروز وارد بازی شوید",
 		"objectives": [{"type": "login", "target": 1}],
-		"rewards": {Globals.ResourceType.RESEARCH_PTS: 25}
+		"rewards": {Globals.ResourceType.RESEARCH_POINTS: 25}
 	}
 }
 

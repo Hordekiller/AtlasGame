@@ -132,11 +132,11 @@ func _on_army_arrived(travel_id: String, origin_city_id: String, target_island_i
 			target_city_id = cid
 			break
 	if target_city_id.is_empty():
-		ArmyTravel.return_army(origin_city_id, units)
 		return
-	var battle = CombatSystem.create_battle(origin_city_id, target_city_id, units, commander_id)
-	ArmyTravel.return_army(origin_city_id, battle.get("survivors", {}))
-	EventBus.battle_completed.emit(battle.get("battle_id", travel_id), battle.get("winner", ""))
+	var attacker: Dictionary = {"city_id": origin_city_id, "units": units, "formation": "standard", "commander_data": {"id": commander_id}}
+	var defender: Dictionary = {"city_id": target_city_id, "units": GameState.current_npc_cities.get(target_city_id, {}).get("units", {}), "formation": "standard"}
+	var battle = CombatSystem.create_battle(attacker, defender, travel_id)
+	EventBus.battle_completed.emit(travel_id, battle.status if battle else "unknown")
 
 func _check_daily_reward() -> void:
 	if daily_reward and daily_reward.has_method("check_and_show"):

@@ -145,7 +145,7 @@ func _execute_mission(mission: Dictionary) -> void:
 
 	var base_success = MISSION_BASE_SUCCESS.get(mission_type, 0.5)
 	var success_chance = base_success + spy_level * 0.1 - target_hideout_level * 0.03
-	var success_chance = base_success + hideout_level * 0.05 - target_hideout_level * 0.03
+	success_chance = base_success + hideout_level * 0.05 - target_hideout_level * 0.03
 	success_chance = clampf(success_chance, 0.05, 0.95)
 
 	var roll = randf()

@@ -55,8 +55,8 @@ static func simulate_round(state: BattleState) -> Dictionary:
 		"attacker_losses": atk_losses,
 		"defender_losses": def_losses,
 		"skills_triggered": atk_skills + def_skills,
-		"attacker_units_remaining": _count_units(state.attacker),
-		"defender_units_remaining": _count_units(state.defender)
+		"attacker_units_remaining": count_units(state.attacker),
+		"defender_units_remaining": count_units(state.defender)
 	}
 
 	state.rounds_log.append(round_data)
@@ -127,7 +127,7 @@ static func _apply_damage(army: Dictionary, power: float, defense: float, attack
 	var losses_per_unit = max(1, ceil(raw_damage / effective_defense))
 
 	var units = army.get("units", {})
-	var total_units = _count_units(army)
+	var total_units = count_units(army)
 	if total_units <= 0:
 		return losses
 
@@ -150,7 +150,7 @@ static func _apply_damage(army: Dictionary, power: float, defense: float, attack
 				units[unit_type] = count - killed
 	return losses
 
-static func _count_units(army: Dictionary) -> int:
+static func count_units(army: Dictionary) -> int:
 	var total := 0
 	var units = army.get("units", {})
 	for unit_type in units:
@@ -162,13 +162,13 @@ static func _count_units(army: Dictionary) -> int:
 	return total
 
 static func _check_battle_end(state: BattleState) -> void:
-	if _count_units(state.attacker) <= 0:
+	if count_units(state.attacker) <= 0:
 		state.status = "defender_win"
-	elif _count_units(state.defender) <= 0:
+	elif count_units(state.defender) <= 0:
 		state.status = "attacker_win"
 	elif state.current_round >= MAX_ROUNDS:
-		var atk_rem = _count_units(state.attacker)
-		var def_rem = _count_units(state.defender)
+		var atk_rem = count_units(state.attacker)
+		var def_rem = count_units(state.defender)
 		if atk_rem > def_rem:
 			state.status = "attacker_win"
 		elif def_rem > atk_rem:

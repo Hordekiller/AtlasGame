@@ -18,18 +18,36 @@ var _last_pinch_distance: float = -1.0
 
 var _island_cols: int = 5
 
+var _world_bounds: Rect2 = Rect2()
+
 func _ready() -> void:
 	_camera = $Camera2D
 	EventBus.city_created.connect(_on_city_updated)
 	EventBus.game_loaded.connect(update_map)
+	EventBus.resource_changed.connect(func(_a, _b, _c, _d): queue_redraw())
+	EventBus.trade_ship_arrived.connect(func(_a, _b, _c, _d, _e): queue_redraw())
 	_preload_textures()
 	get_viewport().size_changed.connect(_update_viewport)
+	_calculate_world_bounds()
+
+func _calculate_world_bounds() -> void:
+	var min_pos = Vector2(INF, INF)
+	var max_pos = Vector2(-INF, -INF)
+	var s = ResponsiveLayout.scale_factor
+	for i in range(WorldManager.ISLAND_COUNT):
+		var pos = _get_island_position(i)
+		min_pos.x = mini(min_pos.x, pos.x - ISLAND_RADIUS * s * 2)
+		min_pos.y = mini(min_pos.y, pos.y - ISLAND_RADIUS * s * 2)
+		max_pos.x = maxi(max_pos.x, pos.x + ISLAND_RADIUS * s * 2)
+		max_pos.y = maxi(max_pos.y, pos.y + ISLAND_RADIUS * s * 2)
+	_world_bounds = Rect2(min_pos, max_pos - min_pos)
 
 func _update_viewport() -> void:
 	var vp = get_viewport().get_visible_rect()
 	_island_cols = clampi(int(vp.size.x / 280), 3, 7)
 	var s = ResponsiveLayout.scale_factor
 	_camera.zoom = Vector2(s, s)
+	_calculate_world_bounds()
 	queue_redraw()
 
 func _preload_textures() -> void:
@@ -69,21 +87,27 @@ func _get_visible_rect() -> Rect2:
 func _draw() -> void:
 	var s = ResponsiveLayout.scale_factor
 	var radius = ISLAND_RADIUS * s
-	var ocean_step = int(200 * s)
 	var visible_rect = _get_visible_rect()
 
-	for x in range(0, int(2000 * s), max(ocean_step, 1)):
-		for y in range(0, int(2000 * s), max(ocean_step, 1)):
-			if _ocean_tex and Rect2(x, y, ocean_step, ocean_step).intersects(visible_rect):
-				var os = 200 * s
-				draw_texture_rect(_ocean_tex, Rect2(x, y, os, os), false)
+	if _ocean_tex:
+		var tex_size = 200 * s
+		var start_x = floor(visible_rect.position.x / tex_size) * tex_size
+		var start_y = floor(visible_rect.position.y / tex_size) * tex_size
+		var end_x = visible_rect.end.x
+		var end_y = visible_rect.end.y
+		for x in range(start_x, end_x, tex_size):
+			for y in range(start_y, end_y, tex_size):
+				draw_texture_rect(_ocean_tex, Rect2(x, y, tex_size, tex_size), false)
 
 	var islands = GameState.current_islands
-	var index = 0
 
 	for island_id in islands:
 		var island = islands[island_id]
-		var pos = _get_island_position(index)
+		var idx = island.get("index", 0)
+		var pos = _get_island_position(idx)
+
+		if not visible_rect.intersects(Rect2(pos - Vector2(radius, radius), Vector2(radius * 2, radius * 2))):
+			continue
 
 		if island.get("explored", false):
 			var resource = island.get("primary_resource", -1)
@@ -127,8 +151,6 @@ func _draw() -> void:
 			draw_string(ThemeDB.fallback_font, pos + Vector2(-20 * s, -5 * s), "???",
 				HORIZONTAL_ALIGNMENT_LEFT, -1, int(14 * s), Color(0.5, 0.5, 0.5, 0.7))
 
-		index += 1
-
 	_draw_trade_routes(s)
 
 func _draw_trade_routes(s: float) -> void:
@@ -144,8 +166,9 @@ func _draw_trade_routes(s: float) -> void:
 		var city = GameState.current_cities.get(cid)
 		if not city:
 			continue
-		var island = GameState.current_islands.get(city.get("island_id", ""))
-		if not island:
+		var island_id = city.get("island_id", "")
+		var island = GameState.current_islands.get(island_id)
+		if not island or not island.get("explored", false):
 			continue
 		var idx = island.get("index", 0)
 		city_positions[cid] = _get_island_position(idx) + Vector2(0, 20 * s)
@@ -200,6 +223,14 @@ func _resource_to_name(resource_type: int) -> String:
 		Globals.IslandResource.SULFUR: return "sulfur"
 		_: return ""
 
+func _clamp_camera() -> void:
+	if _world_bounds.size.x <= 0 or _world_bounds.size.y <= 0:
+		return
+	var vp = get_viewport().get_visible_rect()
+	var half_view = vp.size / _camera.zoom / 2
+	_camera.position.x = clampf(_camera.position.x, _world_bounds.position.x + half_view.x, _world_bounds.end.x - half_view.x)
+	_camera.position.y = clampf(_camera.position.y, _world_bounds.position.y + half_view.y, _world_bounds.end.y - half_view.y)
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
@@ -211,8 +242,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				_dragging = false
 		elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			_camera.zoom *= 1.1
+			_clamp_camera()
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			_camera.zoom = max(0.3, _camera.zoom * 0.9)
+			_clamp_camera()
 	elif event is InputEventMouseMotion and event.button_mask & MOUSE_BUTTON_MASK_LEFT:
 		if _drag_start != Vector2.ZERO:
 			var delta = event.position - _drag_start
@@ -220,13 +253,17 @@ func _unhandled_input(event: InputEvent) -> void:
 				_dragging = true
 			if _dragging:
 				_camera.position -= delta / _camera.zoom.x
+				_clamp_camera()
 			_drag_start = event.position
 	elif event is InputEventPanGesture:
 		_camera.position -= event.delta * 100 / _camera.zoom.x
+		_clamp_camera()
 	elif event is InputEventMagnifyGesture:
 		_camera.zoom = max(0.3, min(5.0, _camera.zoom * (1.0 / event.factor)))
 		if _camera.zoom.x == 0:
 			_camera.zoom = Vector2(1, 1)
+		_clamp_camera()
+		queue_redraw()
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			_touch_points[event.index] = event.position
@@ -237,6 +274,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_touch_points[event.index] = event.position
 		if _touch_points.size() == 1:
 			_camera.position -= event.relative / _camera.zoom.x
+			_clamp_camera()
 		elif _touch_points.size() == 2:
 			_handle_pinch()
 
@@ -252,15 +290,13 @@ func _handle_click(screen_pos: Vector2) -> void:
 	var world_pos = _camera.get_canvas_transform().affine_inverse() * screen_pos
 	var radius = ISLAND_RADIUS * ResponsiveLayout.scale_factor
 
-	var islands = GameState.current_islands
-	var index = 0
-	for island_id in islands:
-		var island = islands[island_id]
+	for island_id in GameState.current_islands:
+		var island = GameState.current_islands[island_id]
 		if not island.get("explored", false):
-			index += 1
 			continue
 
-		var pos = _get_island_position(index)
+		var idx = island.get("index", 0)
+		var pos = _get_island_position(idx)
 		if world_pos.distance_to(pos) < radius:
 			var npc_cities = island.get("npc_cities", [])
 			if not npc_cities.is_empty():
@@ -278,7 +314,6 @@ func _handle_click(screen_pos: Vector2) -> void:
 				else:
 					_show_colonize_dialog(island_id)
 			return
-		index += 1
 
 func _show_colonize_dialog(island_id: String) -> void:
 	var source_cities = []

@@ -38,7 +38,7 @@ func check_win_conditions() -> void:
 				if b.get("id") == "town_hall" and b.get("constructed", false):
 					max_city_level = max(max_city_level, b.get("level", 1))
 
-	var npc_defeated = GameState.get("npc_factions_defeated", 0)
+	var npc_defeated = GameState.npc_factions_defeated
 
 	if islands_controlled >= win_conditions["islands_controlled"]:
 		game_won.emit("شما بر ۵ جزیره مسلط شده‌اید!")
@@ -84,8 +84,7 @@ func _on_city_created(city_id: String, _name: String, island_id: String) -> void
 	check_win_conditions()
 
 func _on_npc_defeated(faction_id: String) -> void:
-	var defeated = GameState.get("npc_factions_defeated", 0)
-	GameState["npc_factions_defeated"] = defeated + 1
+	GameState.npc_factions_defeated += 1
 	npc_faction_defeated.emit(faction_id)
 	check_win_conditions()
 
@@ -94,11 +93,11 @@ func get_save_data() -> Dictionary:
 		"tutorial_completed": tutorial_completed,
 		"population_zero_days": _population_zero_days,
 		"treasury_negative_days": _treasury_negative_days,
-		"npc_factions_defeated": GameState.get("npc_factions_defeated", 0)
+		"npc_factions_defeated": GameState.npc_factions_defeated
 	}
 
 func load_save_data(data: Dictionary) -> void:
 	tutorial_completed = data.get("tutorial_completed", false)
 	_population_zero_days = data.get("population_zero_days", 0)
 	_treasury_negative_days = data.get("treasury_negative_days", 0)
-	GameState["npc_factions_defeated"] = data.get("npc_factions_defeated", 0)
+	GameState.npc_factions_defeated = data.get("npc_factions_defeated", 0)
