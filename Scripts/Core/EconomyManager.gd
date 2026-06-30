@@ -106,58 +106,68 @@ func get_resource(city_id: String, rtype: int) -> float:
 		return 0.0
 	return city.get("resources", {}).get(rtype, 0.0)
 
+func _get_corruption_percent(city_id: String) -> float:
+	var city = GameState.current_cities.get(city_id)
+	if not city:
+		return 0.0
+	var is_capital = false
+	var capital_id = GameState.current_cities.keys().front()
+	if capital_id == city_id:
+		is_capital = true
+	var cities_outside = GameState.current_cities.size() - 1
+	var corruption = mini(cities_outside * 0.05, 0.5)
+	var reduction = 0.0
+	for pos in city.get("buildings", {}):
+		var b = city["buildings"][pos]
+		if b.get("id") == "governor_residence" and b.get("constructed", false):
+			reduction += 0.05 * b.get("level", 1)
+	corruption = max(0.0, corruption - reduction)
+	return corruption
+
 func recalculate_satisfaction(city_id: String) -> float:
 	var city = GameState.current_cities.get(city_id)
 	if not city:
-		return Globals.HAPPINESS_BASE_SATISFACTION
+		return 100.0
 
-	var sat = Globals.HAPPINESS_BASE_SATISFACTION
-
-	var production = city.get("production", {})
-	sat += production.get(Globals.ResourceType.SATISFACTION, 0.0)
-
+	var sat = 100.0
 	var pop = city.get("resources", {}).get(Globals.ResourceType.POPULATION, 0.0)
-	sat += pop * Globals.HAPPINESS_CROWDED_PENALTY_PER_POP
+	var town_hall_level = 1
+	var max_pop = 50.0
 
-	var wine_consumed = 0.0
 	for pos in city.get("buildings", {}):
 		var b = city["buildings"][pos]
-		if b.get("id") == "tavern" and b.get("constructed", false):
-			var defn = BuildingManager.get_building_def("tavern")
-			var level = b.get("level", 1)
-			var wine_needed = defn.get("wine_consumption_per_level", 1.0) * level
-			var available = get_resource(city_id, Globals.ResourceType.WINE)
-			var actual = min(wine_needed, available)
-			b["wine_used_last_tick"] = actual
-			sat += actual * Globals.HAPPINESS_WINE_SAT_PER_UNIT
-			wine_consumed += actual
+		if not b.get("constructed", false):
+			continue
+		var bid = b.get("id", "")
+		var level = b.get("level", 1)
+		match bid:
+			"tavern": sat += level * 5
+			"temple": sat += level * 4
+			"museum": sat += level * 3
+			"town_hall": town_hall_level = level
 
-	var corruption = get_corruption(city_id)
-	sat -= corruption * Globals.HAPPINESS_CORRUPTION_SAT_PENALTY
+	max_pop = town_hall_level * 50.0
+	for pos in city.get("buildings", {}):
+		var b = city["buildings"][pos]
+		if b.get("id") == "farm" and b.get("constructed", false):
+			max_pop += b.get("level", 1) * 10
+
+	var housing_ratio = pop / max(max_pop, 1.0)
+	if housing_ratio > 0.8:
+		sat -= 20.0
+
+	var corruption = _get_corruption_percent(city_id)
+	sat -= corruption * 10.0
+
+	var city_count = GameState.current_cities.size() - 1
+	sat -= city_count * 2.0
 
 	sat = clampf(sat, 0.0, 200.0)
 	city["satisfaction"] = sat
 	return sat
 
 func get_corruption(city_id: String) -> float:
-	var city = GameState.current_cities.get(city_id)
-	if not city:
-		return 0.0
-
-	var total_colonies = GameState.current_cities.size() - 1
-	var base_corruption = 0.0
-	if total_colonies > 0:
-		base_corruption = total_colonies * Globals.HAPPINESS_CORRUPTION_PER_COLONY
-
-	var reduction = 0.0
-	for pos in city.get("buildings", {}):
-		var b = city["buildings"][pos]
-		if b.get("id") == "governor_residence" and b.get("constructed", false):
-			var defn = BuildingManager.get_building_def("governor_residence")
-			reduction += defn.get("corruption_reduction_per_level", 5.0) * b.get("level", 1)
-
-	base_corruption = max(0.0, base_corruption - reduction)
-	return base_corruption
+	return _get_corruption_percent(city_id) * 100.0
 
 func get_warehouse_capacity(city_id: String) -> float:
 	var city = GameState.current_cities.get(city_id)
@@ -173,6 +183,27 @@ func get_warehouse_capacity(city_id: String) -> float:
 			capacity += defn.get("storage_bonus", 0) * b.get("level", 1)
 	return capacity
 
+func _get_town_hall_max_pop(city: Dictionary) -> float:
+	var max_pop = 50.0
+	for pos in city.get("buildings", {}):
+		var b = city["buildings"][pos]
+		if b.get("id") == "town_hall" and b.get("constructed", false):
+			max_pop = b.get("level", 1) * 50.0
+		if b.get("id") == "farm" and b.get("constructed", false):
+			max_pop += b.get("level", 1) * 10.0
+	return max_pop
+
+func _get_total_unit_upkeep(city: Dictionary) -> float:
+	var upkeep = 0.0
+	for ut in city.get("units", {}):
+		var unit_data = city["units"][ut]
+		var count = int(unit_data) if typeof(unit_data) == TYPE_INT else int(unit_data.get("count", 0))
+		var defn = MilitaryManager.UNIT_DEFINITIONS.get(ut, {})
+		var unit_upkeep = defn.get("upkeep", {})
+		upkeep += unit_upkeep.get(Globals.ResourceType.FOOD, 0.0) * count
+		upkeep += unit_upkeep.get(Globals.ResourceType.GOLD, 0.0) * count
+	return upkeep
+
 func process_tick() -> void:
 	for city_id in GameState.current_cities:
 		var city = GameState.current_cities[city_id]
@@ -185,78 +216,88 @@ func process_tick() -> void:
 		var gold_rt = int(Globals.ResourceType.GOLD)
 		var sat_rt = int(Globals.ResourceType.SATISFACTION)
 
-		var current_pop = int(resources.get(pop_rt, 0.0))
-
+		var current_pop = resources.get(pop_rt, 0.0)
 		var satisfaction = recalculate_satisfaction(city_id)
 		resources[sat_rt] = satisfaction
 
-		var target_pop = int(production.get(pop_rt, 0.0) * 20.0)
-		var pop_growth = 0.0
+		var corruption = _get_corruption_percent(city_id)
 
-		var sat_factor = 0.0
-		if satisfaction >= Globals.HAPPINESS_POP_GROWTH_MAX_SAT:
-			sat_factor = 1.0
-		elif satisfaction <= Globals.HAPPINESS_POP_GROWTH_MIN_SAT:
-			sat_factor = 0.0
-		else:
-			sat_factor = (satisfaction - Globals.HAPPINESS_POP_GROWTH_MIN_SAT) / (Globals.HAPPINESS_POP_GROWTH_MAX_SAT - Globals.HAPPINESS_POP_GROWTH_MIN_SAT)
+		# corruption penalty on production
+		var effective_production = {}
+		for rt in production:
+			effective_production[rt] = production[rt] * (1.0 - corruption)
 
-		if current_pop < target_pop:
-			pop_growth = lerpf(Globals.HAPPINESS_POP_GROWTH_MIN_RATE, Globals.HAPPINESS_POP_GROWTH_MAX_RATE, sat_factor)
-		elif current_pop > target_pop:
-			pop_growth = -0.2
+		var max_pop = _get_town_hall_max_pop(city)
+		var housing_ratio = current_pop / max(max_pop, 1.0)
 
-		var workers_rt = int(Globals.ResourceType.WORKERS)
-		var total_workers = int(resources.get(workers_rt, 0.0))
-		var workers_needed = city.get("total_workers_used", 0)
-		var available_pop_for_workers = current_pop - total_workers
-		if available_pop_for_workers > 0 and total_workers < workers_needed:
-			var new_workers = min(available_pop_for_workers, workers_needed - total_workers, 0.5)
-			resources[workers_rt] = total_workers + new_workers
-
-		var food_prod = production.get(food_rt, 0.0)
-		var food_cons = consumption.get(food_rt, 0.0) + current_pop * 0.1
-
+		# food
+		var food_prod = effective_production.get(food_rt, 0.0)
+		var unit_upkeep = _get_total_unit_upkeep(city)
+		var food_cons = consumption.get(food_rt, 0.0) + current_pop * 0.1 + unit_upkeep
 		var food_stock = resources.get(food_rt, 0.0)
 		var net_food = food_prod - food_cons
 		resources[food_rt] = max(0.0, food_stock + net_food)
 
-		if food_stock + net_food <= 0 and net_food < 0:
-			pop_growth -= 1.0
+		# population growth (GDD formula)
+		var pop_growth = 0.0
+		if food_stock + net_food > 0:
+			pop_growth = food_prod * 0.1 + satisfaction * 0.002 - housing_ratio * 0.05
+			pop_growth = clampf(pop_growth, -0.5, 2.0)
+		else:
+			pop_growth = -abs(net_food) * 0.01
 
+		# workers
+		var workers_rt = int(Globals.ResourceType.WORKERS)
+		var total_workers = resources.get(workers_rt, 0.0)
+		var workers_needed = float(city.get("total_workers_used", 0))
+		if current_pop > total_workers and total_workers < workers_needed:
+			var new_workers = min(current_pop - total_workers, workers_needed - total_workers, 0.5)
+			resources[workers_rt] = total_workers + new_workers
+
+		# apply pop growth
+		var new_pop = max(0.0, current_pop + pop_growth)
+		resources[pop_rt] = new_pop
+		if pop_growth != 0:
+			EventBus.resource_changed.emit(city_id, str(pop_rt), new_pop, pop_growth)
+
+		EventBus.resource_changed.emit(city_id, str(food_rt), resources[food_rt], net_food)
+
+		# gold from production + population tax - unit upkeep
+		var gold_prod = effective_production.get(gold_rt, 0.0) + current_pop * 0.05
+		var gold_cons = 0.0
+		for ut in city.get("units", {}):
+			var unit_data = city["units"][ut]
+			var count = int(unit_data) if typeof(unit_data) == TYPE_INT else int(unit_data.get("count", 0))
+			var defn = MilitaryManager.UNIT_DEFINITIONS.get(ut, {})
+			gold_cons += defn.get("upkeep", {}).get(Globals.ResourceType.GOLD, 0.0) * count
+
+		var net_gold = gold_prod - gold_cons
+		var gold_stock = resources.get(gold_rt, 0.0)
+		resources[gold_rt] = max(0.0, gold_stock + net_gold)
+		EventBus.resource_changed.emit(city_id, str(gold_rt), resources[gold_rt], net_gold)
+
+		# wine consumption for tavern
 		var wine_rt = int(Globals.ResourceType.WINE)
+		var wine_needed = 0.0
 		for pos in city.get("buildings", {}):
 			var b = city["buildings"][pos]
 			if b.get("id") == "tavern" and b.get("constructed", false):
 				var defn = BuildingManager.get_building_def("tavern")
-				var level = b.get("level", 1)
-				var wine_needed = defn.get("wine_consumption_per_level", 1.0) * level
-				var wine_available = resources.get(wine_rt, 0.0)
-				var wine_used = min(wine_needed, wine_available)
-				resources[wine_rt] = max(0.0, wine_available - wine_used)
+				wine_needed += defn.get("wine_consumption_per_level", 1.0) * b.get("level", 1)
+		if wine_needed > 0:
+			var wine_available = resources.get(wine_rt, 0.0)
+			var wine_used = min(wine_needed, wine_available)
+			resources[wine_rt] = max(0.0, wine_available - wine_used)
 
-		if pop_growth != 0:
-			var new_pop = max(0.0, resources.get(pop_rt, 0.0) + pop_growth)
-			resources[pop_rt] = new_pop
-			EventBus.resource_changed.emit(city_id, str(pop_rt), resources[pop_rt], pop_growth)
-
-		EventBus.resource_changed.emit(city_id, str(food_rt), resources[food_rt], net_food)
-
-		var gold_prod = production.get(gold_rt, 0.0)
-		if gold_prod > 0:
-			var gold_amount = gold_prod + current_pop * 0.05
-			resources[gold_rt] = resources.get(gold_rt, 0.0) + gold_amount
-			EventBus.resource_changed.emit(city_id, str(gold_rt), resources[gold_rt], gold_amount)
-
+		# other resources with warehouse cap
 		var warehouse_cap = get_warehouse_capacity(city_id)
-		for prod_rt in production:
-			if prod_rt == food_rt or prod_rt == gold_rt or prod_rt == pop_rt or prod_rt == sat_rt:
+		for prod_rt in effective_production:
+			if prod_rt == food_rt or prod_rt == gold_rt or prod_rt == pop_rt or prod_rt == sat_rt or prod_rt == wine_rt:
 				continue
-			var net = production[prod_rt] - consumption.get(prod_rt, 0.0)
+			var net = effective_production[prod_rt] - consumption.get(prod_rt, 0.0)
 			if net != 0:
 				var current = resources.get(prod_rt, 0.0)
-				var new_val = max(0.0, min(warehouse_cap, current + net))
-				resources[prod_rt] = new_val
+				resources[prod_rt] = max(0.0, min(warehouse_cap, current + net))
 				EventBus.resource_changed.emit(city_id, str(prod_rt), resources[prod_rt], net)
 
 	if GameState.current_day > 0:
