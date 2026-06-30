@@ -433,10 +433,16 @@ func process_tick() -> void:
 func get_unit_def(unit_type: String) -> Dictionary:
 	return UNIT_DEFINITIONS.get(unit_type, {}).duplicate(true)
 
-func get_units_for_building(building_id: String) -> Array:
+func get_units_for_building(building_id: String, city_id: String = "") -> Array:
 	var result = []
+	var building_def = BuildingManager.get_building_def(building_id) if Engine.has_singleton("BuildingManager") else {}
+	var trainable = building_def.get("units_trainable", [])
 	for unit_type in UNIT_DEFINITIONS:
 		if UNIT_DEFINITIONS[unit_type].get("building") == building_id:
+			if not trainable.is_empty() and unit_type not in trainable:
+				continue
+			if not city_id.is_empty() and not is_unit_unlocked(city_id, unit_type):
+				continue
 			result.append(unit_type)
 	return result
 
@@ -444,6 +450,15 @@ func train_units(city_id: String, unit_type: String, count: int) -> bool:
 	var defn = UNIT_DEFINITIONS.get(unit_type)
 	if not defn:
 		return false
+
+	if not is_unit_unlocked(city_id, unit_type):
+		return false
+
+	var req_building = defn.get("building", "")
+	if not req_building.is_empty():
+		var chk_city = GameState.current_cities.get(city_id, {})
+		if not _has_constructed_building(chk_city, req_building):
+			return false
 
 	var total_cost = {}
 	for r in defn.get("cost", {}):
@@ -510,6 +525,13 @@ func get_unit_upkeep(city_id: String) -> Dictionary:
 		for r in defn.get("upkeep", {}):
 			total[r] = total.get(r, 0.0) + defn["upkeep"][r] * count
 	return total
+
+func _has_constructed_building(city: Dictionary, building_id: String) -> bool:
+	for pos in city.get("buildings", {}):
+		var b = city["buildings"][pos]
+		if b.get("id") == building_id and b.get("constructed", false):
+			return true
+	return false
 
 func is_unit_unlocked(city_id: String, unit_type: String) -> bool:
 	var defn = UNIT_DEFINITIONS.get(unit_type, {})

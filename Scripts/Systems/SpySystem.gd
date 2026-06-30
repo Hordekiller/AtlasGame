@@ -60,6 +60,12 @@ func get_active_mission_count(city_id: String) -> int:
 			count += 1
 	return count
 
+const MISSION_RESEARCH_REQ: Dictionary = {
+	"sabotage": "sabotage",
+	"incite_revolt": "espionage",
+	"poison_water": "espionage"
+}
+
 func can_launch_mission(city_id: String, target_city_id: String, mission_type: String) -> Dictionary:
 	if not MISSION_COSTS.has(mission_type):
 		return {"success": false, "reason": "نوع مأموریت نامعتبر"}
@@ -72,6 +78,13 @@ func can_launch_mission(city_id: String, target_city_id: String, mission_type: S
 
 	if get_active_mission_count(city_id) >= get_max_missions(city_id):
 		return {"success": false, "reason": "تعداد مأموریت‌های همزمان به حداکثر رسیده"}
+
+	var req_tech = MISSION_RESEARCH_REQ.get(mission_type, "")
+	if not req_tech.is_empty():
+		var city = GameState.current_cities.get(city_id, {})
+		var completed = city.get("research_completed", [])
+		if req_tech not in completed:
+			return {"success": false, "reason": "نیازمند پژوهش: " + ResearchManager.get_research_def(req_tech).get("name", req_tech)}
 
 	var costs = MISSION_COSTS.get(mission_type, {})
 	if not EconomyManager.can_afford(city_id, costs):
@@ -243,6 +256,7 @@ func _do_steal_research(from_city_id: String, to_city_id: String) -> Dictionary:
 
 	if target_research not in source["research_completed"]:
 		source["research_completed"].append(target_research)
+		ResearchManager._apply_stolen_research(source, target_research)
 		return {"message": "تحقیق %s به سرقت رفت" % target_research, "stolen_tech": target_research}
 
 	return {"message": "تحقیق تکراری بود", "stolen_tech": target_research}

@@ -186,7 +186,7 @@ func _load_research_tree() -> void:
 			"duration": 60.0,
 			"description": "قابلیت ساخت بندر و کشتی‌های ابتدایی",
 			"prerequisites": ["improved_lumber"],
-			"effects": { "unlock_building": "port" }
+			"effects": { "unlock_building": "port", "unlock_unit": "ship_cargo" }
 		},
 
 		## TIER 3 - ECONOMY
@@ -250,7 +250,7 @@ func _load_research_tree() -> void:
 			"duration": 85.0,
 			"description": "واحدهای محاصره‌ای (منجنیق، قوچ)",
 			"prerequisites": ["advanced_military"],
-			"effects": { "unlock_unit": "catapult" }
+			"effects": { "unlock_unit": ["catapult", "ram"] }
 		},
 		"medical_corps": {
 			"name": "سپاه پزشکی",
@@ -336,7 +336,7 @@ func _load_research_tree() -> void:
 			"duration": 105.0,
 			"description": "کشتی‌های جنگی پیشرفته",
 			"prerequisites": ["advanced_shipbuilding"],
-			"effects": { "unlock_unit": "ship_catapult" }
+			"effects": { "unlock_unit": ["ship_catapult", "ship_mortar"] }
 		},
 		"naval_ram": {
 			"name": "قوچ دریایی",
@@ -410,7 +410,7 @@ func _load_research_tree() -> void:
 			"duration": 65.0,
 			"description": "مسیرهای تجاری بیشتر و کارآمدتر",
 			"prerequisites": ["shipbuilding"],
-			"effects": {}
+			"effects": { "extra_trade_routes": 1, "trade_efficiency": 0.15 }
 		},
 		"diplomacy": {
 			"name": "دیپلماسی",
@@ -420,7 +420,7 @@ func _load_research_tree() -> void:
 			"duration": 35.0,
 			"description": "ارتباط با بازیکنان دیگر و اتحادها",
 			"prerequisites": [],
-			"effects": {}
+			"effects": { "alliance_capacity": 1, "npc_truce_discount": 0.2 }
 		},
 		"fire_ships": {
 			"name": "کشتی آتشین",
@@ -461,6 +461,40 @@ func _load_research_tree() -> void:
 			"description": "خمپاره‌انداز - آسیب سنگین به دیوار",
 			"prerequisites": ["siege_warfare", "gunpowder"],
 			"effects": { "unlock_unit": "mortar" }
+		},
+
+		## TIER 3 — GDD MISSING TECHS
+		"iron_weapons": {
+			"name": "جنگ‌افزارهای آهنی",
+			"category": Globals.TechCategory.MILITARY,
+			"tier": 3,
+			"cost": 65,
+			"duration": 70.0,
+			"description": "واحدهای شمشیرزن و کماندار پیشرفته",
+			"prerequisites": ["advanced_military"],
+			"effects": { "unlock_unit": ["swordsman", "archer"] }
+		},
+		"sabotage": {
+			"name": "خرابکاری",
+			"category": Globals.TechCategory.MILITARY,
+			"tier": 3,
+			"cost": 75,
+			"duration": 80.0,
+			"description": "عملیات خرابکاری جاسوسان - تخریب ساختمان دشمن",
+			"prerequisites": ["espionage"],
+			"effects": { "unlock_spy_mission": "sabotage" }
+		},
+
+		## TIER 3 — TRADE (چندرشته‌ای، زیر NAVIGATION)
+		"trade_empires": {
+			"name": "امپراتوری تجاری",
+			"category": Globals.TechCategory.NAVIGATION,
+			"tier": 3,
+			"cost": 70,
+			"duration": 75.0,
+			"description": "قراردادهای تجاری +۱ و کارمزد بازار کمتر",
+			"prerequisites": ["trade_network", "market_economy"],
+			"effects": { "extra_trade_routes": 1, "market_tax_reduction": 0.1 }
 		},
 		"balloon_bombing": {
 			"name": "بمباران با بالن",
@@ -627,6 +661,34 @@ func _complete_research(city_id: String, city: Dictionary, tech_id: String) -> v
 			if bid not in city["unlocked_buildings"]:
 				city["unlocked_buildings"].append(bid)
 
+	if tech_id not in GameState.completed_research:
+		GameState.completed_research.append(tech_id)
+
+	EventBus.research_completed.emit(tech_id)
+
+func _apply_stolen_research(city: Dictionary, tech_id: String) -> void:
+	var defn = _research_tree.get(tech_id, {})
+	var effects = defn.get("effects", {})
+	if effects.has("unlock_unit"):
+		var raw = effects["unlock_unit"]
+		var unit_list = raw if typeof(raw) == TYPE_ARRAY else [raw]
+		for unit_id in unit_list:
+			if not GameState.current_units.has(unit_id):
+				GameState.current_units[unit_id] = {"count": 0, "unlocked": true}
+			if not city.has("unlocked_units"):
+				city["unlocked_units"] = []
+			if unit_id not in city["unlocked_units"]:
+				city["unlocked_units"].append(unit_id)
+	if effects.has("unlock_building"):
+		var raw = effects["unlock_building"]
+		var building_list = raw if typeof(raw) == TYPE_ARRAY else [raw]
+		for bid in building_list:
+			if not city.has("unlocked_buildings"):
+				city["unlocked_buildings"] = []
+			if bid not in city["unlocked_buildings"]:
+				city["unlocked_buildings"].append(bid)
+	if tech_id not in GameState.completed_research:
+		GameState.completed_research.append(tech_id)
 	EventBus.research_completed.emit(tech_id)
 
 func get_save_data() -> Dictionary:
