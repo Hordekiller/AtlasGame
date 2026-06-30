@@ -13,6 +13,8 @@ extends Control
 @onready var daily_reward: Panel = $DailyReward
 @onready var commander_panel: Panel = $CommanderPanel
 @onready var battle_scene: Control = $BattleScene
+@onready var npc_dialog: Panel = $NPCDialog
+@onready var tutorial_manager: CanvasLayer = $TutorialManager
 
 var _current_view: String = "city"
 
@@ -34,7 +36,15 @@ func _ready() -> void:
 		commander_panel.hide()
 	if battle_scene:
 		battle_scene.hide()
+	if npc_dialog:
+		npc_dialog.hide()
 	BeginnerProtection.start_protection()
+	ObjectPool.prewarm("unit_icon", 20)
+	ObjectPool.prewarm("projectile", 30)
+	if tutorial_manager and "start_tutorial" in tutorial_manager:
+		var tut_data = SaveManager.load_tutorial_state()
+		if not tut_data.get("completed", false):
+			tutorial_manager.start_tutorial()
 	QuestSystem.check_login()
 	_check_daily_reward()
 	update_all()
@@ -84,6 +94,19 @@ func _on_exit_confirm() -> void:
 	SaveManager.save_game(0)
 	get_tree().change_scene_to_file("res://Scenes/Menu/MainMenu.tscn")
 
+func show_npc_dialog(npc_city_id: String) -> void:
+	if npc_dialog and npc_dialog.has_method("show_for_npc"):
+		npc_dialog.show_for_npc(npc_city_id)
+
+func show_battle(battle, attacker_id: String, defender_id: String) -> void:
+	if battle_scene and battle_scene.has_method("start_battle"):
+		battle_scene.start_battle(battle, attacker_id, defender_id)
+
+func show_military_panel(city_id: String) -> void:
+	var mp = $MilitaryPanel
+	if mp and mp.has_method("open"):
+		mp.open(city_id)
+
 func _on_exit_cancel() -> void:
 	AudioManager.play_button_click()
 	if exit_dialog:
@@ -118,6 +141,8 @@ func _process(_delta: float) -> void:
 		else:
 			if exit_dialog:
 				exit_dialog.show()
+	elif Input.is_action_just_pressed("ui_cancel") and npc_dialog and npc_dialog.visible:
+		npc_dialog.hide()
 	elif Input.is_action_just_pressed("map_toggle"):
 		if _current_view == "city":
 			switch_to_world_map()

@@ -4,6 +4,7 @@ var current_cities: Dictionary = {}
 var current_islands: Dictionary = {}
 var current_research: Dictionary = {}
 var current_units: Dictionary = {}
+var current_npc_cities: Dictionary = {}
 var active_trades: Array = []
 var trade_routes: Dictionary = {}
 var completed_research: Array = []
@@ -20,6 +21,7 @@ func reset() -> void:
 	current_islands.clear()
 	current_research.clear()
 	current_units.clear()
+	current_npc_cities.clear()
 	active_trades.clear()
 	trade_routes.clear()
 	completed_research.clear()
@@ -37,6 +39,7 @@ func to_dict() -> Dictionary:
 		"islands": current_islands,
 		"research": current_research,
 		"units": current_units,
+		"npc_cities": current_npc_cities,
 		"trades": active_trades,
 		"trade_routes": trade_routes,
 		"completed_research": completed_research,
@@ -54,6 +57,7 @@ func from_dict(data: Dictionary) -> void:
 	current_islands = data.get("islands", {})
 	current_research = data.get("research", {})
 	current_units = data.get("units", {})
+	current_npc_cities = data.get("npc_cities", {})
 	active_trades = data.get("trades", [])
 	trade_routes = data.get("trade_routes", {})
 	completed_research = data.get("completed_research", [])

@@ -133,7 +133,7 @@ func _setup_action_buttons() -> void:
 func _setup_advisor_bar() -> void:
 	var advisors = [
 		{"node": town_btn, "icon": "res://Assets/Textures/UI/city_icon.png", "callback": "_on_town"},
-		{"node": commander_btn, "icon": "res://Assets/Textures/UI/sword.png", "callback": "_on_commander"},
+		{"node": commander_btn, "icon": "res://Assets/Textures/UI/sword.svg", "callback": "_on_commander"},
 		{"node": military_btn, "icon": "res://Assets/Textures/UI/btn_world.png", "callback": "_on_military"},
 		{"node": research_btn, "icon": "res://Assets/Textures/UI/scientist.png", "callback": "_on_research"},
 		{"node": quest_btn, "icon": "res://Assets/Textures/UI/check.png", "callback": "_on_quest"},

@@ -89,12 +89,16 @@ text = "۵:۰۰"
 layout_mode = 2
 size_flags_vertical = 3
 color = Color(0.0, 0.0, 0.0, 0.3)
+mouse_filter = 1
 
-[node name="AttackerSide" type="Node2D" parent="VBox/BattleField"]
+[node name="AttackerUnits" type="Node2D" parent="VBox/BattleField"]
 position = Vector2(200, 250)
 
-[node name="DefenderSide" type="Node2D" parent="VBox/BattleField"]
+[node name="DefenderUnits" type="Node2D" parent="VBox/BattleField"]
 position = Vector2(1720, 250)
+
+[node name="ProjectileLayer" type="Node2D" parent="VBox/BattleField"]
+position = Vector2(0, 0)
 
 [node name="BottomBar" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
@@ -104,7 +108,7 @@ theme_override_constants/separation = 16
 [node name="RetreatBtn" type="Button" parent="VBox/BottomBar"]
 layout_mode = 2
 custom_minimum_size = Vector2(160, 48)
-text = "🏳 عقب‌نشینی"
+text = "عقب‌نشینی"
 visible = false
 
 [node name="ResultPanel" type="Panel" parent="VBox"]
@@ -128,3 +132,17 @@ theme_override_font_sizes/font_size = 28
 horizontal_alignment = 1
 vertical_alignment = 1
 text = ""
+
+[node name="CloseReportBtn" type="Button" parent="VBox/ResultPanel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -80
+offset_top = 40
+offset_right = 80
+offset_bottom = 88
+custom_minimum_size = Vector2(160, 48)
+text = "مشاهده گزارش"

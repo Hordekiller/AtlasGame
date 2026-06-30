@@ -14,6 +14,9 @@ func generate_world() -> void:
 		var island_data = _generate_island(island_id, i, rng)
 		GameState.current_islands[island_id] = island_data
 
+	_generate_npc_cities(rng)
+	GameState.current_npc_cities = _npc_cities_data.duplicate(true)
+
 func _generate_island(island_id: String, index: int, rng: RandomNumberGenerator) -> Dictionary:
 	var resource_types = [
 		Globals.IslandResource.WOOD,
@@ -41,6 +44,7 @@ func _generate_island(island_id: String, index: int, rng: RandomNumberGenerator)
 		"secondary_resource": secondary_resource,
 		"city_positions": _generate_city_positions(rng),
 		"player_cities": [],
+		"npc_cities": [],
 		"explored": false
 	}
 
@@ -51,6 +55,76 @@ func _generate_city_positions(rng: RandomNumberGenerator) -> Array:
 		var dist = rng.randf_range(0.3, 0.8)
 		positions.append(Vector2(cos(angle) * dist, sin(angle) * dist))
 	return positions
+
+var _npc_cities_data: Dictionary = {}
+
+func _generate_npc_cities(rng: RandomNumberGenerator) -> void:
+	_npc_cities_data.clear()
+	var npc_names = [
+		"اردشیر", "داریوش", "کوروش", "خشایار", "مهرداد",
+		"بهمن", "فرهاد", "شاپور", "بهرام", "تیرداد",
+		"اردوان", "گودرز", "نرسی", "هرمز", "پیروز",
+		"قباد", "انوشیروان", "یزدگرد", "خسرو", "بابک"
+	]
+	var npc_island_count = min(12, ISLAND_COUNT)
+	var island_indices = []
+	for i in range(ISLAND_COUNT):
+		island_indices.append(i)
+	rng.shuffle(island_indices)
+
+	var used_names = []
+	for i in range(npc_island_count):
+		var island_idx = island_indices[i]
+		var island_id = "island_%d" % island_idx
+		var island = GameState.current_islands[island_id]
+
+		var name_idx = rng.randi_range(0, npc_names.size() - 1)
+		var city_name = npc_names[name_idx] + "‌شهر"
+		if city_name in used_names:
+			city_name = "شهر " + npc_names[name_idx]
+		used_names.append(city_name)
+
+		var npc_city_id = "npc_%s" % island_id
+		var defense_level = rng.randi_range(1, 5)
+		var army_size = rng.randi_range(50, 500)
+		var unit_types = ["slinger", "hoplite", "archer"]
+		var units = {}
+		for ut in unit_types:
+			units[ut] = rng.randi_range(10, army_size / len(unit_types))
+
+		var buildings = {}
+		var starter_ids = ["town_hall", "lumberjack", "quarry", "farm", "barracks", "warehouse", "wall"]
+		var bpos = Vector2i(4, 4)
+		for bid in starter_ids:
+			var defn = BuildingManager.get_building_def(bid)
+			var sz = defn.get("size", Vector2i(2, 2))
+			var lvl = rng.randi_range(1, defense_level)
+			var bdata = {
+				"id": bid, "level": lvl,
+				"grid_pos": bpos, "size": sz,
+				"constructed": true, "constructing": false,
+				"upgrading": false, "workers_assigned": 2
+			}
+			for x in range(bpos.x, bpos.x + sz.x):
+				for y in range(bpos.y, bpos.y + sz.y):
+					buildings[Vector2i(x, y)] = bdata
+			bpos += Vector2i(3, 0)
+
+		var npc_data = {
+			"id": npc_city_id,
+			"name": city_name,
+			"island_id": island_id,
+			"player": "NPC",
+			"grid_size": Globals.CitySize.SMALL,
+			"buildings": buildings,
+			"units": units,
+			"defense_level": defense_level,
+			"army_size": army_size,
+			"aggression": rng.randf_range(0.1, 0.9),
+			"resources": { Globals.ResourceType.GOLD: 1000, Globals.ResourceType.WOOD: 800 }
+		}
+		_npc_cities_data[npc_city_id] = npc_data
+		island["npc_cities"].append(npc_city_id)
 
 func create_player_city(city_name: String, island_id: String, position_index: int, player_name: String = "بازیکن") -> String:
 	var island = GameState.current_islands.get(island_id)

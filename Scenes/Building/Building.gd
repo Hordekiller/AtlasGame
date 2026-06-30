@@ -145,6 +145,29 @@ func _show_normal(wc: Vector2, size: Vector2i, bid: String, level: int) -> void:
 		_building_sprite.z_index = 1
 		_building_sprite.modulate = Color(1, 1, 1, 0.9)
 		add_child(_building_sprite)
+	else:
+		var cat = building_def.get("category", -1)
+		var cat_color = _get_category_color(cat)
+		var placeholder = ColorRect.new()
+		var ts = _tile_size()
+		placeholder.size = Vector2(size * ts) - Vector2(8, 8)
+		placeholder.position = wc - placeholder.size / 2
+		placeholder.color = Color(cat_color.r, cat_color.g, cat_color.b, 0.5)
+		placeholder.z_index = 1
+		add_child(placeholder)
+		var border = ColorRect.new()
+		border.size = placeholder.size + Vector2(4, 4)
+		border.position = wc - border.size / 2
+		border.color = Color(cat_color.r * 0.6, cat_color.g * 0.6, cat_color.b * 0.6, 0.8)
+		border.z_index = 0
+		add_child(border)
+		var name_label = Label.new()
+		name_label.text = building_def.get("name", bid)
+		name_label.position = wc - Vector2(placeholder.size.x / 2 - 4, 6)
+		name_label.z_index = 2
+		name_label.add_theme_font_size_override("font_size", 8)
+		name_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.7))
+		add_child(name_label)
 
 	_highlight = Sprite2D.new()
 	_highlight.position = wc + Vector2(0, -8)

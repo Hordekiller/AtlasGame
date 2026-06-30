@@ -38,8 +38,8 @@ func _preload_textures() -> void:
 		"island": "res://Assets/Textures/World/island.png",
 		"island_active": "res://Assets/Textures/World/island_active.png",
 		"city_blue": "res://Assets/Textures/Environment/city_blue.png",
-		"city_red": "res://Assets/Textures/Environment/city_red.png"
-	}
+	"city_red": "res://Assets/Textures/Environment/city_red.png"
+}
 	for key in paths:
 		var p = paths[key]
 		if ResourceLoader.exists(p):
@@ -111,6 +111,16 @@ func _draw() -> void:
 						draw_texture_rect(_city_blue_tex, Rect2(city_pos - Vector2(cs * 0.5, cs * 0.5), Vector2(cs, cs)), false)
 					draw_string(ThemeDB.fallback_font, city_pos + Vector2(12 * s, 4 * s), city.get("name", ""),
 						HORIZONTAL_ALIGNMENT_LEFT, -1, int(10 * s), Color(1, 1, 1, 0.9))
+
+			for npc_city_id in island.get("npc_cities", []):
+				var npc_city = GameState.current_npc_cities.get(npc_city_id)
+				if npc_city:
+					var npc_pos = pos + Vector2(0, -20 * s)
+					if _city_red_tex:
+						var cs = 16 * s
+						draw_texture_rect(_city_red_tex, Rect2(npc_pos - Vector2(cs * 0.5, cs * 0.5), Vector2(cs, cs)), false)
+					draw_string(ThemeDB.fallback_font, npc_pos + Vector2(12 * s, 4 * s), npc_city.get("name", ""),
+						HORIZONTAL_ALIGNMENT_LEFT, -1, int(10 * s), Color(1.0, 0.3, 0.3, 0.9))
 		else:
 			if _island_tex:
 				draw_texture_rect(_island_tex, Rect2(pos - Vector2(radius, radius), Vector2(radius * 2, radius * 2)), false, Color(0.3, 0.3, 0.35, 0.6))
@@ -252,15 +262,21 @@ func _handle_click(screen_pos: Vector2) -> void:
 
 		var pos = _get_island_position(index)
 		if world_pos.distance_to(pos) < radius:
-			var player_cities = island.get("player_cities", [])
-			if not player_cities.is_empty():
-				GameState.selected_city_id = player_cities[0]
-				EventBus.city_selected.emit(player_cities[0])
+			var npc_cities = island.get("npc_cities", [])
+			if not npc_cities.is_empty():
 				var game = get_parent()
-				if game and game.has_method("switch_to_city_view"):
-					game.switch_to_city_view()
+				if game and game.has_method("show_npc_dialog"):
+					game.show_npc_dialog(npc_cities[0])
 			else:
-				_show_colonize_dialog(island_id)
+				var player_cities = island.get("player_cities", [])
+				if not player_cities.is_empty():
+					GameState.selected_city_id = player_cities[0]
+					EventBus.city_selected.emit(player_cities[0])
+					var game = get_parent()
+					if game and game.has_method("switch_to_city_view"):
+						game.switch_to_city_view()
+				else:
+					_show_colonize_dialog(island_id)
 			return
 		index += 1
 

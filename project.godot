@@ -73,6 +73,7 @@ CommanderConfig="*res://Scripts/Systems/CommanderConfig.gd"
 FormationConfig="*res://Scripts/Systems/FormationConfig.gd"
 DefensiveBuildings="*res://Scripts/Systems/DefensiveBuildings.gd"
 CombatSystem="*res://Scripts/Systems/CombatSystem.gd"
+NPCSystem="*res://Scripts/Systems/NPCSystem.gd"
 
 [display]
 
