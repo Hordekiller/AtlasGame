@@ -187,6 +187,11 @@ func get_building_sprite(building_id: String) -> String:
 		"pirate_fortress": "res://Assets/Textures/Buildings/pirate_fortress.png",
 		"steam_workshop": "res://Assets/Textures/Buildings/steam_workshop.png",
 		"flying_machine_workshop": "res://Assets/Textures/Buildings/flying_machine_workshop.png",
+		"watchtower": "res://Assets/Textures/Buildings/watchtower.png",
+		"cannon": "res://Assets/Textures/Buildings/cannon.png",
+		"harbor_chain": "res://Assets/Textures/Buildings/harbor_chain.png",
+		"vault": "res://Assets/Textures/Buildings/vault.png",
+		"city_wall": "res://Assets/Textures/Buildings/city_wall.png",
 	}
 	return sprite_map.get(building_id, "res://Assets/Textures/Buildings/construct.png")
 

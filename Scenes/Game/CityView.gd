@@ -17,9 +17,13 @@ var _placement_building_id: String = ""
 
 var _city_id: String = ""
 var _building_nodes: Dictionary = {}
+var _city_decor: Node2D
+var _city_terrain: Node2D
 
 func _ready() -> void:
 	_camera = $Camera2D
+	_city_decor = $CityDecor
+	_city_terrain = $CityTerrain
 	_city_id = GameState.selected_city_id
 
 	EventBus.building_constructed.connect(_on_building_changed)
@@ -59,7 +63,9 @@ func _on_city_selected(city_id: String) -> void:
 
 func rebuild_all() -> void:
 	_clear_all_nodes()
+	_build_terrain()
 	_build_all()
+	_rebuild_decor()
 	queue_redraw()
 
 func _clear_all_nodes() -> void:
@@ -68,6 +74,18 @@ func _clear_all_nodes() -> void:
 		if is_instance_valid(n):
 			n.queue_free()
 	_building_nodes.clear()
+
+func _build_terrain() -> void:
+	if _city_terrain and _city_terrain.has_method("build"):
+		var city = GameState.current_cities.get(_city_id)
+		var gs = city.get("grid_size", GRID_SIZE) if city else GRID_SIZE
+		_city_terrain.build(_city_id, gs)
+
+func _rebuild_decor() -> void:
+	if _city_decor and _city_decor.has_method("build"):
+		var city = GameState.current_cities.get(_city_id)
+		var gs = city.get("grid_size", GRID_SIZE) if city else GRID_SIZE
+		_city_decor.build(_city_id, gs)
 
 func _build_all() -> void:
 	var city = GameState.current_cities.get(_city_id)
@@ -196,10 +214,12 @@ func _draw_placement_preview() -> void:
 		if ResourceLoader.exists(sp):
 			var tex = ResourceLoader.load(sp) as Texture2D
 			if tex:
-				var ts2 = size.x * ts * 0.5
-				var center = wp + size * ts / 2
+				var tex_w = tex.get_width()
+				var tex_h = tex.get_height()
+				var base_x = wp.x + size.x * ts / 2.0
+				var base_y = wp.y + size.y * ts - tex_h / 2.0
 				var alpha = 0.4 if not check.success else 0.7
-				draw_texture_rect(tex, Rect2(center - Vector2(ts2 * 0.5, ts2 * 0.5), Vector2(ts2, ts2)), false, Color(1, 1, 1, alpha))
+				draw_texture_rect(tex, Rect2(base_x - tex_w / 2, base_y, tex_w, tex_h), false, Color(1, 1, 1, alpha))
 	else:
 		var ts = ResponsiveLayout.get_tile_size()
 		draw_rect(Rect2(_grid_to_world(_hovered_tile), Vector2(ts, ts)), Color(1, 1, 1, 0.1), true)

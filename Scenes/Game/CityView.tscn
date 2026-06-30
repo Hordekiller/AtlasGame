@@ -3,18 +3,26 @@
 [ext_resource type="Script" uid="uid://duj2vjrmpd281" path="res://Scenes/Game/CityView.gd" id="1_t5nra"]
 [ext_resource type="Texture2D" uid="uid://de1l1dcpln0ku" path="res://Assets/Textures/Environment/city_bg.jpg" id="2_m42ad"]
 [ext_resource type="Script" uid="uid://diuvp8f27bquk" path="res://Scenes/Game/CitizenSystem.gd" id="3_awfcp"]
+[ext_resource type="Script" uid="uid://ieiekenibe8c" path="res://Scenes/Game/CityDecor.gd" id="4_bdecf"]
+[ext_resource type="Script" uid="uid://ch5dnmdfxlu2b" path="res://Scenes/Game/CityTerrain.gd" id="5_nkbe4"]
 
 [node name="CityView" type="Node2D" unique_id=828717348]
 script = ExtResource("1_t5nra")
+
+[node name="CityTerrain" type="Node2D" parent="."]
+script = ExtResource("5_nkbe4")
+
+[node name="CityDecor" type="Node2D" parent="."]
+script = ExtResource("4_bdecf")
 
 [node name="CitizenSystem" type="Node2D" parent="." unique_id=660032985]
 script = ExtResource("3_awfcp")
 
 [node name="Bg" type="Sprite2D" parent="." unique_id=519843637]
-modulate = Color(0.6, 0.6, 0.7, 0.8)
-z_index = -10
-position = Vector2(484, 767)
-scale = Vector2(1.5, 1.2)
+modulate = Color(0.4, 0.5, 0.6, 0.6)
+z_index = -20
+position = Vector2(512, 384)
+scale = Vector2(2.5, 2.0)
 texture = ExtResource("2_m42ad")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1137670138]

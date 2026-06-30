@@ -57,7 +57,7 @@ func _build_all() -> void:
 	if constructing:
 		_show_constructing(wc, size, bid)
 	elif upgrading:
-		_show_upgrading(wc, size, bid)
+		_show_upgrading(wc, size, bid, level)
 	else:
 		_show_normal(wc, size, bid, level)
 
@@ -93,14 +93,19 @@ func _update_progress_local(total_key: String, left_key: String, local_left: flo
 		else:
 			_progress_label.text = "%ds" % secs
 
+func _sprite_base_pos(wc: Vector2, size: Vector2i, tex: Texture2D) -> Vector2:
+	var ts = _tile_size()
+	var tex_h = tex.get_height() if tex else ts
+	return Vector2(wc.x, wc.y + size.y * ts / 2.0 - tex_h / 2.0)
+
 func _show_constructing(wc: Vector2, size: Vector2i, _bid: String) -> void:
 	var cp = "res://Assets/Textures/Buildings/construct.png"
 	if ResourceLoader.exists(cp):
+		var tex = ResourceLoader.load(cp) as Texture2D
 		var scaffold = Sprite2D.new()
-		scaffold.texture = ResourceLoader.load(cp)
-		scaffold.position = wc
+		scaffold.texture = tex
+		scaffold.position = _sprite_base_pos(wc, size, tex)
 		scaffold.centered = true
-		scaffold.scale = Vector2(max(1.0, size.x * 0.5), max(1.0, size.y * 0.5))
 		scaffold.z_index = 1
 		if ResourceLoader.exists("res://Assets/Shaders/building_glow.gdshader"):
 			var mat = ShaderMaterial.new()
@@ -115,14 +120,14 @@ func _show_constructing(wc: Vector2, size: Vector2i, _bid: String) -> void:
 		progress = 1.0 - (_local_construct_left / total)
 	_make_progress_bar(wc, size, progress, Color(0.2, 0.7, 1.0))
 
-func _show_upgrading(wc: Vector2, size: Vector2i, bid: String) -> void:
+func _show_upgrading(wc: Vector2, size: Vector2i, bid: String, _level: int) -> void:
 	var sp = Globals.get_building_sprite(bid)
 	if ResourceLoader.exists(sp):
+		var tex = ResourceLoader.load(sp) as Texture2D
 		var spr = Sprite2D.new()
-		spr.texture = ResourceLoader.load(sp)
-		spr.position = wc
+		spr.texture = tex
+		spr.position = _sprite_base_pos(wc, size, tex)
 		spr.centered = true
-		spr.scale = Vector2(max(1.0, size.x * 0.5), max(1.0, size.y * 0.5))
 		spr.z_index = 1
 		spr.modulate = Color(1, 1, 1, 0.6)
 		add_child(spr)
@@ -137,11 +142,11 @@ func _show_upgrading(wc: Vector2, size: Vector2i, bid: String) -> void:
 func _show_normal(wc: Vector2, size: Vector2i, bid: String, level: int) -> void:
 	var sp = Globals.get_building_sprite(bid)
 	if ResourceLoader.exists(sp):
+		var tex = ResourceLoader.load(sp) as Texture2D
 		_building_sprite = Sprite2D.new()
-		_building_sprite.texture = ResourceLoader.load(sp)
-		_building_sprite.position = wc
+		_building_sprite.texture = tex
+		_building_sprite.position = _sprite_base_pos(wc, size, tex)
 		_building_sprite.centered = true
-		_building_sprite.scale = Vector2(max(1.0, size.x * 0.5), max(1.0, size.y * 0.5))
 		_building_sprite.z_index = 1
 		_building_sprite.modulate = Color(1, 1, 1, 0.9)
 		add_child(_building_sprite)

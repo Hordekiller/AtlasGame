@@ -6,6 +6,7 @@ const ISLAND_RADIUS: float = 80.0
 var _camera: Camera2D
 var _ocean_tex: Texture = null
 var _island_tex: Texture = null
+var _island_fog_tex: Texture = null
 
 var _island_bgs: Dictionary = {}
 var _city_blue_tex: Texture = null
@@ -65,11 +66,12 @@ func _preload_textures() -> void:
 			match key:
 				"ocean": _ocean_tex = tex
 				"island": _island_tex = tex
+				"island_active": _island_fog_tex = tex
 				"city_blue": _city_blue_tex = tex
 				"city_red": _city_red_tex = tex
 
 	for rt_name in ["wood", "marble", "glass", "wine", "crystal", "sulfur"]:
-		var path = "res://Assets/Textures/Resources/island_%s.jpg" % rt_name
+		var path = "res://Assets/Textures/World/island_%s.png" % rt_name
 		if ResourceLoader.exists(path):
 			_island_bgs[rt_name] = ResourceLoader.load(path)
 
@@ -146,7 +148,9 @@ func _draw() -> void:
 					draw_string(ThemeDB.fallback_font, npc_pos + Vector2(12 * s, 4 * s), npc_city.get("name", ""),
 						HORIZONTAL_ALIGNMENT_LEFT, -1, int(10 * s), Color(1.0, 0.3, 0.3, 0.9))
 		else:
-			if _island_tex:
+			if _island_fog_tex:
+				draw_texture_rect(_island_fog_tex, Rect2(pos - Vector2(radius, radius), Vector2(radius * 2, radius * 2)), false)
+			elif _island_tex:
 				draw_texture_rect(_island_tex, Rect2(pos - Vector2(radius, radius), Vector2(radius * 2, radius * 2)), false, Color(0.3, 0.3, 0.35, 0.6))
 			draw_string(ThemeDB.fallback_font, pos + Vector2(-20 * s, -5 * s), "???",
 				HORIZONTAL_ALIGNMENT_LEFT, -1, int(14 * s), Color(0.5, 0.5, 0.5, 0.7))

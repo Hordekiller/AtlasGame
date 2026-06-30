@@ -677,9 +677,9 @@ func can_place_building(city_id: String, building_id: String, grid_pos: Vector2i
 
 	var island_requirement = defn.get("requires_island_resource", -1)
 	if island_requirement >= 0:
-		var city = GameState.current_cities.get(city_id)
-		if city:
-			var island_id = city.get("island_id", "")
+		var ic = GameState.current_cities.get(city_id)
+		if ic:
+			var island_id = ic.get("island_id", "")
 			var island = GameState.current_islands.get(island_id, {})
 			var primary = island.get("primary_resource", -1)
 			if primary != island_requirement:
