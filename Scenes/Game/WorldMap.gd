@@ -31,6 +31,19 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_update_viewport)
 	_calculate_world_bounds()
 
+func _get_window_size() -> Vector2:
+	if DisplayServer.get_name() != "headless":
+		var s = DisplayServer.window_get_size()
+		if s.x > 0 and s.y > 0:
+			return s
+	return get_viewport().get_visible_rect().size
+
+func _get_visible_design() -> Vector2:
+	var design = get_viewport().get_visible_rect().size
+	var window_size = _get_window_size()
+	var godot_scale = max(window_size.x / design.x, window_size.y / design.y)
+	return window_size / godot_scale
+
 func _calculate_world_bounds() -> void:
 	var min_pos = Vector2(INF, INF)
 	var max_pos = Vector2(-INF, -INF)
@@ -44,12 +57,30 @@ func _calculate_world_bounds() -> void:
 	_world_bounds = Rect2(min_pos, max_pos - min_pos)
 
 func _update_viewport() -> void:
-	var vp = get_viewport().get_visible_rect()
-	_island_cols = clampi(int(vp.size.x / 280), 3, 7)
-	var s = ResponsiveLayout.scale_factor
-	_camera.zoom = Vector2(s, s)
+	var visible = _get_visible_design()
+	_island_cols = clampi(int(visible.x / 280), 3, 7)
 	_calculate_world_bounds()
+
+	var s = ResponsiveLayout.scale_factor
+	var is_mobile = visible.x < get_viewport().get_visible_rect().size.x * 0.95
+	if is_mobile:
+		var visible_area = _get_world_visible_area()
+		var zoom_x = visible.x / visible_area.size.x if visible_area.size.x > 0 else 1.0
+		var zoom_y = visible.y / visible_area.size.y if visible_area.size.y > 0 else 1.0
+		_camera.zoom = Vector2(clampf(min(zoom_x, zoom_y), 0.3, 2.0), clampf(min(zoom_x, zoom_y), 0.3, 2.0))
+		_camera.position = Vector2(_world_bounds.position.x + visible_area.size.x * 0.5, _world_bounds.position.y + visible_area.size.y * 0.5)
+	else:
+		_camera.zoom = Vector2(s, s)
+	_clamp_camera()
 	queue_redraw()
+
+func _get_world_visible_area() -> Rect2:
+	if _world_bounds.size.x <= 0 or _world_bounds.size.y <= 0:
+		return Rect2(0, 0, 100, 100)
+	return Rect2(_world_bounds.position, Vector2(
+		min(_world_bounds.size.x, 800),
+		min(_world_bounds.size.y, 600)
+	))
 
 func _preload_textures() -> void:
 	var paths = {
@@ -230,8 +261,8 @@ func _resource_to_name(resource_type: int) -> String:
 func _clamp_camera() -> void:
 	if _world_bounds.size.x <= 0 or _world_bounds.size.y <= 0:
 		return
-	var vp = get_viewport().get_visible_rect()
-	var half_view = vp.size / _camera.zoom / 2
+	var visible = _get_visible_design()
+	var half_view = visible / _camera.zoom / 2
 	_camera.position.x = clampf(_camera.position.x, _world_bounds.position.x + half_view.x, _world_bounds.end.x - half_view.x)
 	_camera.position.y = clampf(_camera.position.y, _world_bounds.position.y + half_view.y, _world_bounds.end.y - half_view.y)
 

@@ -30,14 +30,21 @@ func _get_visible_design() -> Vector2:
 func _clamp_panel(p: Control) -> void:
 	var visible = _get_visible_design()
 	var rect = p.get_rect()
+	var off_x = 0.0
+	var off_y = 0.0
 	if rect.position.x < 0:
-		p.position.x = 0
+		off_x = -rect.position.x
+	elif rect.end.x > visible.x:
+		off_x = visible.x - rect.end.x
 	if rect.position.y < 0:
-		p.position.y = 0
-	if rect.end.x > visible.x:
-		p.position.x = max(0, visible.x - rect.size.x)
-	if rect.end.y > visible.y:
-		p.position.y = max(0, visible.y - rect.size.y)
+		off_y = -rect.position.y
+	elif rect.end.y > visible.y:
+		off_y = visible.y - rect.end.y
+	if off_x != 0 or off_y != 0:
+		p.offset_left += off_x
+		p.offset_top += off_y
+		p.offset_right += off_x
+		p.offset_bottom += off_y
 
 func _on_panel_shown() -> void:
 	for p in get_children():
