@@ -16,9 +16,20 @@ func _ready() -> void:
 		close_btn.texture_normal = ResourceLoader.load("res://Assets/Textures/UI/close.png")
 	close_btn.pressed.connect(_hide_panel)
 	attack_btn.pressed.connect(_on_attack)
+	UITheme.style_button(attack_btn)
 	spy_btn.pressed.connect(_on_spy)
+	UITheme.style_button(spy_btn)
 	trade_btn.pressed.connect(_on_trade)
+	UITheme.style_button(trade_btn)
 	hide()
+	get_viewport().size_changed.connect(_update_responsive)
+	_update_responsive()
+
+func _update_responsive() -> void:
+	var vp = get_viewport().get_visible_rect()
+	var sz = ResponsiveLayout.clamp_modal_size(Vector2(min(350, vp.size.x * 0.8), min(250, vp.size.y * 0.6))) if Engine.has_singleton("ResponsiveLayout") else Vector2(350, 250)
+	custom_minimum_size = sz
+	size = sz
 
 func show_for_npc(npc_city_id: String) -> void:
 	_current_npc_id = npc_city_id

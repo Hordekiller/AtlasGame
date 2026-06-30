@@ -11,6 +11,13 @@ func _ready() -> void:
 	if ResourceLoader.exists("res://Assets/Textures/UI/close.png"):
 		close_btn.texture_normal = ResourceLoader.load("res://Assets/Textures/UI/close.png")
 	close_btn.pressed.connect(_close)
+	get_viewport().size_changed.connect(_update_responsive)
+	_update_responsive()
+
+func _update_responsive() -> void:
+	var vp = get_viewport().get_visible_rect()
+	custom_minimum_size = Vector2(min(320, vp.size.x * 0.7), min(400, vp.size.y * 0.7))
+	size = custom_minimum_size
 
 func open(island_id: String) -> void:
 	_island_id = island_id

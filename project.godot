@@ -86,8 +86,14 @@ GestureHandler="*res://Scripts/Core/GestureHandler.gd"
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
-window/size/mode=2
-window/size/always_on_top=true
+window/size/mode=3
+window/size/always_on_top=false
+window/size/viewport_min_width=960
+window/size/viewport_min_height=540
+window/safe_area/margin_left=0
+window/safe_area/margin_top=0
+window/safe_area/margin_right=0
+window/safe_area/margin_bottom=0
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 screen/immersive_mode=true

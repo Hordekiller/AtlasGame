@@ -53,6 +53,9 @@ func _refresh_citizens() -> void:
 	var sat_factor = clampf(satisfaction / 100.0, 0.2, 1.5)
 	var count = clampi(int(pop / 3 * sat_factor), 0, MAX_CITIZENS)
 
+	var ts = ResponsiveLayout.get_tile_size() if Engine.has_singleton("ResponsiveLayout") else 64.0
+	var half_ts = ts * 0.5
+
 	var buildings = city.get("buildings", {})
 	var positions: Array = []
 	var processed: Array = []
@@ -64,8 +67,8 @@ func _refresh_citizens() -> void:
 		if data.get("constructed", false) and not data.get("constructing", false):
 			var gp = data.get("grid_pos", pos)
 			var size = data.get("size", Vector2i(2, 2))
-			var cx = gp.x * 64 + size.x * 32
-			var cy = gp.y * 64 + size.y * 32
+			var cx = gp.x * ts + size.x * half_ts
+			var cy = gp.y * ts + size.y * half_ts
 			positions.append(Vector2(cx, cy))
 
 	if positions.is_empty():

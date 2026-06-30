@@ -7,8 +7,19 @@ var _current_category: int = -1
 var _building_buttons: Dictionary = {}
 
 func _ready() -> void:
+	get_viewport().size_changed.connect(_update_responsive)
+	_update_responsive()
 	_setup_categories()
 	_setup_buildings()
+
+func _update_responsive() -> void:
+	var s = ResponsiveLayout.scale_factor if Engine.has_singleton("ResponsiveLayout") else 1.0
+	for btn in category_buttons.get_children():
+		if btn is Button:
+			btn.custom_minimum_size = Vector2(maxi(60, 80 * s), maxi(36, 44 * s))
+	for btn in building_list.get_children():
+		if btn is Button:
+			btn.custom_minimum_size = Vector2(0, maxi(36, 44 * s))
 
 func _setup_categories() -> void:
 	var categories = [
@@ -33,6 +44,7 @@ func _setup_categories() -> void:
 
 	for cat in categories:
 		var btn = Button.new()
+		UITheme.style_button(btn)
 		btn.text = names.get(cat, "")
 		btn.toggle_mode = true
 		btn.pressed.connect(_on_category_selected.bind(cat))

@@ -15,6 +15,13 @@ func _ready() -> void:
 	UITheme.style_button(delete_btn)
 	load_btn.pressed.connect(_on_load)
 	delete_btn.pressed.connect(_on_delete)
+	get_viewport().size_changed.connect(_update_responsive)
+	_update_responsive()
+
+func _update_responsive() -> void:
+	var vp = get_viewport().get_visible_rect()
+	custom_minimum_size = Vector2(min(300, vp.size.x * 0.6), 0)
+	size = custom_minimum_size
 
 func setup(slot: int) -> void:
 	slot_index = slot

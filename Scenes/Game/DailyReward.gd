@@ -25,6 +25,14 @@ func _ready() -> void:
 	close_btn.pressed.connect(hide)
 	claim_btn.pressed.connect(_on_claim)
 	hide()
+	get_viewport().size_changed.connect(_update_responsive)
+	_update_responsive()
+
+func _update_responsive() -> void:
+	var vp = get_viewport().get_visible_rect()
+	var sz = ResponsiveLayout.clamp_modal_size(Vector2(min(360, vp.size.x * 0.8), min(300, vp.size.y * 0.7))) if Engine.has_singleton("ResponsiveLayout") else Vector2(360, 300)
+	custom_minimum_size = sz
+	size = sz
 
 func check_and_show() -> void:
 	var today = GameState.current_day

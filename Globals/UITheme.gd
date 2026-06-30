@@ -3,7 +3,7 @@ extends Node
 const TOP_BAR_HEIGHT: float = 56.0
 const BOTTOM_BAR_HEIGHT: float = 88.0
 const PANEL_PADDING: int = 8
-const BUTTON_MIN_SIZE: int = 44
+const BUTTON_MIN_SIZE: int = 88
 
 static func get_top_bar_h() -> float:
 	if not ResponsiveLayout:
@@ -154,7 +154,7 @@ func style_button(btn: Button) -> void:
 	var fs = get_font_size(13)
 	btn.add_theme_font_size_override("font_size", fs)
 	var s = get_scale()
-	var min_h = maxi(36, int(36 * s))
+	var min_h = maxi(48, int(48 * s))
 	btn.custom_minimum_size = Vector2(BUTTON_MIN_SIZE * s, min_h)
 
 func style_panel(panel: Panel) -> void:

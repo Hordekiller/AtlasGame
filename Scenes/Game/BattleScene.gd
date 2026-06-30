@@ -21,6 +21,22 @@ var _battle_state = null
 var _is_player_attacker: bool = false
 var _animating: bool = false
 
+var _s: float = 1.0
+var _spacing: float = 60.0
+var _icon_size: float = 32.0
+var _hp_bar_w: float = 40.0
+var _proj_size: float = 8.0
+
+func _update_responsive() -> void:
+	_s = ResponsiveLayout.scale_factor if Engine.has_singleton("ResponsiveLayout") else 1.0
+	_spacing = max(36.0, 60.0 * _s)
+	_icon_size = max(20.0, 32.0 * _s)
+	_hp_bar_w = max(24.0, 40.0 * _s)
+	_proj_size = max(4.0, 8.0 * _s)
+	if _battle_state:
+		_clear_units()
+		_draw_initial_units()
+
 const UNIT_COLORS: Dictionary = {
 	"slinger": Color(0.8, 0.6, 0.3),
 	"hoplite": Color(0.3, 0.5, 0.8),
@@ -46,6 +62,8 @@ func _ready() -> void:
 		cr_btn.pressed.connect(_close)
 	result_panel.hide()
 	hide()
+	get_viewport().size_changed.connect(_update_responsive)
+	_update_responsive()
 
 func start_battle(battle_state_or_id, attacker_or_dict = null, defender_or_dict = null) -> void:
 	if typeof(battle_state_or_id) == TYPE_OBJECT:
@@ -82,6 +100,7 @@ func _draw_initial_units() -> void:
 
 func _draw_army_icons(units: Dictionary, parent: Node2D, is_attacker: bool) -> void:
 	var idx = 0
+	var img_sz = int(_icon_size)
 	for utype in units:
 		var count = 0
 		var val = units[utype]
@@ -94,37 +113,38 @@ func _draw_army_icons(units: Dictionary, parent: Node2D, is_attacker: bool) -> v
 		var sprite = Sprite2D.new()
 		sprite.name = utype
 		var icon = UNIT_ICONS.get(utype, "⚔️")
-		var img = Image.create(32, 32, false, Image.FORMAT_RGBA8)
+		var img = Image.create(img_sz, img_sz, false, Image.FORMAT_RGBA8)
 		img.fill(Color(0, 0, 0, 0))
-		var fnt_size = 20
+		var fnt_size = maxi(10, int(img_sz * 0.6))
 		var font = ThemeDB.fallback_font
 		var fnt = font as Font
 		if fnt:
 			var fw = fnt.get_string_size(icon, HORIZONTAL_ALIGNMENT_LEFT, -1, fnt_size).x
 			var fh = fnt.get_height(fnt_size)
-			var offset_x = (32 - fw) / 2.0
-			var offset_y = (32 - fh) / 2.0
+			var offset_x = (img_sz - fw) / 2.0
+			var offset_y = (img_sz - fh) / 2.0
 			fnt.draw_char(img, Vector2(offset_x, offset_y), icon, fnt_size, UNIT_COLORS.get(utype, Color.WHITE))
 		var tex = ImageTexture.create_from_image(img)
 		sprite.texture = tex
-		sprite.scale = Vector2(1.5, 1.5)
-		var spacing = 60
+		sprite.scale = Vector2(_s, _s)
 		var cols = 5
 		var row = idx / cols
 		var col = idx % cols
-		sprite.position = Vector2(col * spacing - 100, row * spacing - 80)
+		var cx = col * _spacing - _spacing * 1.6
+		var cy = row * _spacing - _spacing * 1.3
+		sprite.position = Vector2(cx, cy)
 		sprite.modulate = Color(1, 1, 1, 0.9)
 		parent.add_child(sprite)
 
 		var hp_bar = ColorRect.new()
 		hp_bar.name = "HP_%s" % utype
-		hp_bar.size = Vector2(40, 6)
+		hp_bar.size = Vector2(_hp_bar_w, max(4, 6 * _s))
 		hp_bar.color = Color(0.2, 0.8, 0.2)
-		hp_bar.position = sprite.position + Vector2(-20, 20)
+		hp_bar.position = sprite.position + Vector2(-_hp_bar_w * 0.5, _icon_size * 0.6)
 		hp_bar.modulate = Color(1, 1, 1, 0.8)
 		var bg_bar = ColorRect.new()
 		bg_bar.name = "HPBG_%s" % utype
-		bg_bar.size = Vector2(40, 6)
+		bg_bar.size = hp_bar.size
 		bg_bar.color = Color(0.3, 0.1, 0.1)
 		bg_bar.position = hp_bar.position
 		bg_bar.modulate = Color(1, 1, 1, 0.5)
@@ -134,9 +154,9 @@ func _draw_army_icons(units: Dictionary, parent: Node2D, is_attacker: bool) -> v
 		var count_label = Label.new()
 		count_label.name = "Cnt_%s" % utype
 		count_label.text = str(count)
-		count_label.add_theme_font_size_override("font_size", 10)
+		count_label.add_theme_font_size_override("font_size", maxi(8, int(10 * _s)))
 		count_label.add_theme_color_override("font_color", Color.WHITE)
-		count_label.position = sprite.position + Vector2(-10, -30)
+		count_label.position = sprite.position + Vector2(-_icon_size * 0.3, -_icon_size * 0.9)
 		parent.add_child(count_label)
 		idx += 1
 
@@ -155,7 +175,7 @@ func _update_unit_counts(parent: Node2D, units: Dictionary) -> void:
 		if hp_bar:
 			var max_hp = 100
 			var current_hp = max(0, count * 10)
-			hp_bar.size.x = 40.0 * clampf(float(current_hp) / max_hp, 0.0, 1.0)
+			hp_bar.size.x = _hp_bar_w * clampf(float(current_hp) / max_hp, 0.0, 1.0)
 			if current_hp < max_hp * 0.3:
 				hp_bar.color = Color(0.8, 0.2, 0.2)
 			elif current_hp < max_hp * 0.6:
@@ -189,13 +209,13 @@ func _animate_round(round_data: Dictionary) -> void:
 	var atk_losses = round_data.get("attacker_losses", {})
 	var def_losses = round_data.get("defender_losses", {})
 
-	var atk_pos = attacker_units_node.global_position + Vector2(100, 0)
-	var def_pos = defender_units_node.global_position + Vector2(-100, 0)
+	var atk_pos = attacker_units_node.global_position + Vector2(100 * _s, 0)
+	var def_pos = defender_units_node.global_position + Vector2(-100 * _s, 0)
 
 	for utype in def_losses:
 		var count = def_losses[utype]
 		for i in range(min(count, 3)):
-			_spawn_projectile(atk_pos, def_pos + Vector2(randf_range(-60, 60), randf_range(-30, 30)))
+			_spawn_projectile(atk_pos, def_pos + Vector2(randf_range(-60 * _s, 60 * _s), randf_range(-30 * _s, 30 * _s)))
 
 	var tween = create_tween()
 	tween.tween_callback(_shake_units.bind(defender_units_node, def_losses))
@@ -203,7 +223,7 @@ func _animate_round(round_data: Dictionary) -> void:
 	for utype in atk_losses:
 		var count = atk_losses[utype]
 		for i in range(min(count, 3)):
-			_spawn_projectile(def_pos, atk_pos + Vector2(randf_range(-60, 60), randf_range(-30, 30)))
+			_spawn_projectile(def_pos, atk_pos + Vector2(randf_range(-60 * _s, 60 * _s), randf_range(-30 * _s, 30 * _s)))
 	tween.tween_callback(_shake_units.bind(attacker_units_node, atk_losses))
 	tween.tween_interval(1.0)
 	tween.tween_callback(func():
@@ -216,13 +236,14 @@ func _animate_round(round_data: Dictionary) -> void:
 
 func _spawn_projectile(from: Vector2, to: Vector2) -> void:
 	var proj = ColorRect.new()
-	proj.size = Vector2(8, 8)
+	var half = _proj_size * 0.5
+	proj.size = Vector2(_proj_size, _proj_size)
 	proj.color = Color(1.0, 0.8, 0.2, 0.9)
-	proj.position = from - Vector2(4, 4)
+	proj.position = from - Vector2(half, half)
 	projectile_layer.add_child(proj)
 	var tween = create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(proj, "position", to - Vector2(4, 4), 0.6).set_ease(Tween.EASE_IN)
+	tween.tween_property(proj, "position", to - Vector2(half, half), 0.6).set_ease(Tween.EASE_IN)
 	tween.tween_property(proj, "color", Color(1.0, 0.8, 0.2, 0.0), 0.5).set_delay(0.1)
 	tween.tween_callback(proj.queue_free)
 
@@ -232,7 +253,7 @@ func _shake_units(parent: Node2D, _losses: Dictionary) -> void:
 			var orig = child.position
 			var tween = create_tween()
 			tween.set_parallel(true)
-			tween.tween_property(child, "position", orig + Vector2(randf_range(-8, 8), randf_range(-4, 4)), 0.05)
+			tween.tween_property(child, "position", orig + Vector2(randf_range(-8 * _s, 8 * _s), randf_range(-4 * _s, 4 * _s)), 0.05)
 			tween.tween_property(child, "position", orig, 0.15).set_delay(0.05)
 
 func _on_timer_timeout() -> void:

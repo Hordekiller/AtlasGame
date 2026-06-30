@@ -34,6 +34,17 @@ func _ready() -> void:
 	EventBus.building_construct_complete.connect(_on_building_built)
 	EventBus.research_completed.connect(_on_research_done)
 	EventBus.battle_completed.connect(_on_battle_done)
+	get_viewport().size_changed.connect(_update_responsive)
+	_update_responsive()
+
+func _update_responsive() -> void:
+	var vp = get_viewport().get_visible_rect()
+	var s = ResponsiveLayout.scale_factor if Engine.has_singleton("ResponsiveLayout") else 1.0
+	tooltip.custom_minimum_size = Vector2(min(400, vp.size.x * 0.8), 0)
+	tooltip.position = Vector2(vp.size.x * 0.5 - tooltip.custom_minimum_size.x * 0.5, vp.size.y * 0.15)
+	tooltip_label.add_theme_font_size_override("font_size", maxi(12, int(14 * s)))
+	next_btn.custom_minimum_size = Vector2(maxi(80, 120 * s), maxi(36, 44 * s))
+	skip_btn.custom_minimum_size = Vector2(maxi(60, 80 * s), maxi(36, 44 * s))
 
 func start_tutorial() -> void:
 	tutorial_active = true
