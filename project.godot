@@ -76,6 +76,7 @@ CombatSystem="*res://Scripts/Systems/CombatSystem.gd"
 GameStateManager="*res://Scripts/Systems/GameStateManager.gd"
 ArmyTravel="*res://Scripts/Systems/ArmyTravel.gd"
 NPCSystem="*res://Scripts/Systems/NPCSystem.gd"
+CrashHandler="*res://Scripts/Core/CrashHandler.gd"
 
 [display]
 
@@ -84,6 +85,9 @@ window/size/viewport_height=1080
 window/size/mode=2
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+window/size/always_on_top=true
+screen/immersive_mode=true
+screen/keep_on=true
 
 [gui]
 

@@ -1,17 +1,95 @@
 extends Node
 
 signal npc_attacked(npc_city_id: String, player_city_id: String, result: Dictionary)
+signal npc_faction_defeated(faction_id: String)
+
+enum FactionType { PIRATE = 0, BARBARIAN = 1, EMPIRE = 2 }
+
+const FACTION_DEFS := {
+	FactionType.PIRATE: {
+		"name": "دزدان دریایی",
+		"color": Color(0.8, 0.2, 0.2),
+		"difficulty": 1, "base_army": 50, "max_army": 200,
+		"aggression": 0.7, "economy": 0.3,
+		"island_count": 2, "unit_focus": ["slinger", "spearman"]
+	},
+	FactionType.BARBARIAN: {
+		"name": "بربرها",
+		"color": Color(0.6, 0.3, 0.1),
+		"difficulty": 2, "base_army": 200, "max_army": 500,
+		"aggression": 0.4, "economy": 0.5,
+		"island_count": 4, "unit_focus": ["hoplite", "swordsman"]
+	},
+	FactionType.EMPIRE: {
+		"name": "امپراتوری",
+		"color": Color(0.9, 0.7, 0.1),
+		"difficulty": 3, "base_army": 500, "max_army": 1000,
+		"aggression": 0.6, "economy": 0.8,
+		"island_count": 6, "unit_focus": ["hoplite", "catapult", "archer"]
+	}
+}
 
 const TICK_INTERVAL: float = 30.0
+const HOSTILITY_DECAY: float = 1.0
+const HOSTILITY_DECAY_INTERVAL: float = 60.0
+
 var _tick_timer: float = 0.0
+var _hostility_timer: float = 0.0
+var _faction_hostility: Dictionary = {}
+var _faction_state: Dictionary = {}
+
+func _ready() -> void:
+	for ftype in FACTION_DEFS:
+		var fid = str(ftype)
+		if not _faction_hostility.has(fid):
+			_faction_hostility[fid] = 0
+		if not _faction_state.has(fid):
+			_faction_state[fid] = {"defeated": false, "cities_remaining": 0}
 
 func _process(delta: float) -> void:
 	_tick_timer += delta
 	if _tick_timer >= TICK_INTERVAL:
 		_tick_timer = 0.0
 		_npc_tick()
+	_hostility_timer += delta
+	if _hostility_timer >= HOSTILITY_DECAY_INTERVAL:
+		_hostility_timer = 0.0
+		_decay_hostility()
+
+func get_faction_defs() -> Dictionary:
+	return FACTION_DEFS.duplicate(true)
+
+func get_faction_hostility(faction_id: String) -> int:
+	return _faction_hostility.get(faction_id, 0)
+
+func get_faction_state(faction_id: String) -> Dictionary:
+	return _faction_state.get(faction_id, {"defeated": false, "cities_remaining": 0})
+
+func modify_hostility(faction_id: String, delta: int) -> void:
+	_faction_hostility[faction_id] = clampi(_faction_hostility.get(faction_id, 0) + delta, 0, 100)
+
+func _decay_hostility() -> void:
+	for fid in _faction_hostility:
+		var current = _faction_hostility[fid]
+		if current > 0 and current <= 50:
+			_faction_hostility[fid] = max(0, current - 1)
+
+func _get_faction_for_npc(npc: Dictionary) -> String:
+	var faction_id = npc.get("faction_id", "")
+	if faction_id.is_empty():
+		faction_id = str(FactionType.PIRATE)
+	return faction_id
 
 func _npc_tick() -> void:
+	if not is_instance_valid(GameState):
+		return
+	if GameState.current_npc_cities.is_empty() or GameState.current_cities.is_empty():
+		return
+
+	var alive_factions = 0
+	for fid in _faction_state:
+		_faction_state[fid]["cities_remaining"] = 0
+
 	for npc_id in GameState.current_npc_cities:
 		var npc = GameState.current_npc_cities[npc_id]
 		if not npc:
@@ -26,7 +104,14 @@ func _npc_tick() -> void:
 		if city.is_empty():
 			continue
 
+		var faction_id = _get_faction_for_npc(npc)
+		if _faction_state.has(faction_id):
+			_faction_state[faction_id]["cities_remaining"] += 1
+
 		var aggression = npc.get("aggression", 0.1)
+		var hostility = _faction_hostility.get(faction_id, 0)
+		var hostile_mod = 1.0 + hostility / 100.0
+
 		var army = npc.get("units", {})
 		var total_army = 0
 		for ut in army:
@@ -36,10 +121,17 @@ func _npc_tick() -> void:
 		for ut in player_units:
 			total_player += int(player_units.get(ut, 0)) if typeof(player_units.get(ut)) == TYPE_INT else player_units.get(ut, {}).get("count", 0)
 
-		if total_army > total_player * 1.5 and randf() < aggression * 0.3:
+		var attack_chance = aggression * 0.3 * hostile_mod
+		if total_army > total_player * 1.5 and randf() < attack_chance:
 			_resolve_npc_attack(npc_id, npc, player_cities[0], city)
 		else:
 			_npc_defensive_build(npc)
+
+	for fid in _faction_state:
+		if _faction_state[fid]["cities_remaining"] == 0 and not _faction_state[fid]["defeated"]:
+			_faction_state[fid]["defeated"] = true
+			alive_factions += 1
+			npc_faction_defeated.emit(fid)
 
 func _resolve_npc_attack(npc_id: String, npc: Dictionary, target_city_id: String, target_city: Dictionary) -> void:
 	var attacker_units = npc.get("units", {}).duplicate()
@@ -86,7 +178,7 @@ func _resolve_npc_attack(npc_id: String, npc: Dictionary, target_city_id: String
 	npc["units"] = attacker_units
 	var result = {"loot": loot, "attacker": npc_id, "defender": target_city_id}
 	npc_attacked.emit(npc_id, target_city_id, result)
-	EventBus.battle_completed.emit(npc_id + "_vs_" + target_city_id, loot.keys().size() > 0 as String)
+	EventBus.battle_completed.emit(npc_id + "_vs_" + target_city_id, "true" if loot.keys().size() > 0 else "false")
 
 func _npc_defensive_build(npc: Dictionary) -> void:
 	var defense = npc.get("defense_level", 1)
@@ -111,5 +203,18 @@ static func spawn_npc_city(island_id: String, difficulty: int = 1) -> Dictionary
 		"buildings": {}, "units": units,
 		"defense_level": difficulty, "army_size": difficulty * 200,
 		"aggression": clampf(difficulty * 0.2, 0.1, 0.9),
+		"faction_id": str(difficulty - 1),
 		"resources": {Globals.ResourceType.GOLD: 500 * difficulty, Globals.ResourceType.WOOD: 400 * difficulty}
 	}
+
+func get_save_data() -> Dictionary:
+	return {
+		"faction_hostility": _faction_hostility.duplicate(),
+		"faction_state": _faction_state.duplicate(true)
+	}
+
+func load_save_data(data: Dictionary) -> void:
+	if data.has("faction_hostility"):
+		_faction_hostility = data["faction_hostility"].duplicate()
+	if data.has("faction_state"):
+		_faction_state = data["faction_state"].duplicate(true)

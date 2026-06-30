@@ -39,8 +39,12 @@ var _event_timers: Dictionary = {}
 var _last_event_days: Dictionary = {}
 
 func _process(delta: float) -> void:
+	if delta <= 0 or delta > 10:
+		return
 	var to_remove = []
 	for eid in _event_timers:
+		if not _event_timers.has(eid):
+			continue
 		_event_timers[eid] -= delta
 		if _event_timers[eid] <= 0:
 			_end_event(eid)

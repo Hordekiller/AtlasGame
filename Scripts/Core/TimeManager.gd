@@ -37,9 +37,22 @@ func _process(delta: float) -> void:
 		_autosave_check()
 
 func _tick() -> void:
+	if not is_instance_valid(EconomyManager) or not is_instance_valid(BuildingManager) or not is_instance_valid(ResearchManager):
+		return
 	EconomyManager.process_tick()
 	BuildingManager.process_tick()
 	ResearchManager.process_tick()
+
+func catch_up(offline_seconds: float) -> void:
+	if offline_seconds <= 0:
+		return
+	var max_catchup = Globals.DAY_DURATION * 30
+	offline_seconds = mini(offline_seconds, max_catchup)
+	var ticks = int(offline_seconds / Globals.TICK_INTERVAL)
+	for _i in range(ticks):
+		_tick()
+	GameState.game_time += offline_seconds
+	print("Offline catch-up: ", offline_seconds, "s, ", ticks, " ticks")
 
 func set_speed(speed: float) -> void:
 	GameState.time_speed = clampf(speed, 0.0, 10.0)
@@ -72,17 +85,8 @@ func _process_offline_time() -> void:
 	var elapsed = now - last_seen
 	if elapsed < 10:
 		return
-	var max_offline = Globals.DAY_DURATION * 30
-	elapsed = mini(elapsed, max_offline)
-	var offline_ticks = int(elapsed / Globals.TICK_INTERVAL)
-	for i in range(offline_ticks):
-		EconomyManager.process_tick()
-		BuildingManager.process_tick()
-		if i % int(Globals.DAY_DURATION / Globals.TICK_INTERVAL) == 0 and i > 0:
-			GameState.current_day += 1
-	GameState.game_time += elapsed
-	print("Offline progress: ", elapsed, "s, ", offline_ticks, " ticks")
-	EventBus.notification_added.emit("پیشرفت آفلاین اعمال شد: " + str(offline_ticks) + " تیک", "info")
+	catch_up(elapsed)
+	EventBus.safe_emit("notification_added", ["پیشرفت آفلاین اعمال شد", "info"])
 
 func record_session_end() -> void:
 	var config = ConfigFile.new()

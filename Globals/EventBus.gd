@@ -42,3 +42,18 @@ signal battle_round(battle_id: String, round: int, attacker_units: Dictionary, d
 signal battle_unit_destroyed(battle_id: String, unit_type: String, is_attacker: bool)
 signal battle_result(battle_id: String, winner: String, loot: Dictionary, casualties: Dictionary)
 signal battle_surrender(battle_id: String, surrendering_city: String, remaining_units: int)
+
+func safe_emit(signal_name: String, args: Array = []) -> void:
+	if not is_instance_valid(self):
+		return
+	var target = Callable(self, signal_name)
+	if not target.is_valid():
+		return
+	match args.size():
+		0: target.call()
+		1: target.call(args[0])
+		2: target.call(args[0], args[1])
+		3: target.call(args[0], args[1], args[2])
+		4: target.call(args[0], args[1], args[2], args[3])
+		5: target.call(args[0], args[1], args[2], args[3], args[4])
+		_: target.callv(args)

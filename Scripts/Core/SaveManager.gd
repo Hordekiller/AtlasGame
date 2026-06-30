@@ -21,51 +21,78 @@ func save_game(slot: int = 0) -> void:
 	data["marketplace"] = MarketplaceManager.get_save_data()
 	data["protection"] = BeginnerProtection.get_save_data()
 	data["notifications"] = NotificationManager.get_save_data()
+	data["npc"] = NPCSystem.get_save_data()
 	var game = get_parent().get_node_or_null("Game")
 	if game and game.has_node("TutorialManager"):
 		data["tutorial"] = game.get_node("TutorialManager").save_state()
 
-	var path = SAVE_PATH + "save_%d" % slot + SAVE_EXTENSION
-	var file = FileAccess.open(path, FileAccess.WRITE)
-	if file:
-		file.store_var(data)
-		file.close()
+	var checksum = data.hash()
+	data["crc32"] = checksum
+
+	var path_a = SAVE_PATH + "save_%d" % slot + SAVE_EXTENSION
+	var path_b = SAVE_PATH + "save_%d_backup" % slot + SAVE_EXTENSION
+	var file_a = FileAccess.open(path_a, FileAccess.WRITE)
+	var file_b = FileAccess.open(path_b, FileAccess.WRITE)
+	if file_a:
+		file_a.store_var(data)
+		file_a.close()
+	if file_b:
+		file_b.store_var(data)
+		file_b.close()
+	if file_a or file_b:
 		EventBus.game_saved.emit()
-		print("Game saved to slot ", slot)
 	else:
-		push_error("Failed to save game to: ", path)
+		push_error("Failed to save game to slot ", slot)
+
+func _try_load_from_path(path: String, slot: int) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
+	var file = FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return {}
+	var data = file.get_var()
+	file.close()
+	var saved_crc = data.get("crc32", 0)
+	data.erase("crc32")
+	if saved_crc != 0 and data.hash() != saved_crc:
+		push_warning("CRC mismatch in save slot ", slot, " at ", path)
+		return {}
+	return data
 
 func load_game(slot: int = 0) -> bool:
-	var path = SAVE_PATH + "save_%d" % slot + SAVE_EXTENSION
-	if not FileAccess.file_exists(path):
+	var data = _try_load_from_path(SAVE_PATH + "save_%d" % slot + SAVE_EXTENSION, slot)
+	if data.is_empty():
+		data = _try_load_from_path(SAVE_PATH + "save_%d_backup" % slot + SAVE_EXTENSION, slot)
+		if data.is_empty():
+			return false
+	if not data.has("version"):
 		return false
 
-	var file = FileAccess.open(path, FileAccess.READ)
-	if file:
-		var data = file.get_var()
-		file.close()
-		GameState.from_dict(data)
+	GameState.from_dict(data)
 
-		EconomyManager.load_save_data(data.get("economy", {}))
-		ResearchManager.load_save_data(data.get("research", {}))
-		MilitaryManager.load_save_data(data.get("military", {}))
-		ArmyTravel.load_save_data(data.get("army_travel", {}))
-		GameStateManager.load_save_data(data.get("game_state", {}))
-		QuestSystem.load_save_data(data.get("quest", {}))
-		EventSystem.load_save_data(data.get("event", {}))
-		SpySystem.load_save_data(data.get("spy", {}))
-		MarketplaceManager.load_save_data(data.get("marketplace", {}))
-		BeginnerProtection.load_save_data(data.get("protection", {}))
-		NotificationManager.load_save_data(data.get("notifications", {}))
+	EconomyManager.load_save_data(data.get("economy", {}))
+	ResearchManager.load_save_data(data.get("research", {}))
+	MilitaryManager.load_save_data(data.get("military", {}))
+	ArmyTravel.load_save_data(data.get("army_travel", {}))
+	GameStateManager.load_save_data(data.get("game_state", {}))
+	QuestSystem.load_save_data(data.get("quest", {}))
+	EventSystem.load_save_data(data.get("event", {}))
+	SpySystem.load_save_data(data.get("spy", {}))
+	MarketplaceManager.load_save_data(data.get("marketplace", {}))
+	BeginnerProtection.load_save_data(data.get("protection", {}))
+	NotificationManager.load_save_data(data.get("notifications", {}))
+	NPCSystem.load_save_data(data.get("npc", {}))
 
-		if data.has("tutorial"):
-			var game = get_parent().get_node_or_null("Game")
-			if game and game.has_node("TutorialManager"):
-				game.get_node("TutorialManager").load_state(data["tutorial"])
-		EventBus.game_loaded.emit()
-		print("Game loaded from slot ", slot)
-		return true
-	return false
+	if data.has("tutorial"):
+		var game = get_parent().get_node_or_null("Game")
+		if game and game.has_node("TutorialManager"):
+			game.get_node("TutorialManager").load_state(data["tutorial"])
+
+	if TimeManager.has_method("catch_up"):
+		TimeManager.catch_up(data.get("offline_seconds", 0))
+
+	EventBus.game_loaded.emit()
+	return true
 
 func get_save_info(slot: int) -> Dictionary:
 	var path = SAVE_PATH + "save_%d" % slot + SAVE_EXTENSION
