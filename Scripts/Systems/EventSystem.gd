@@ -38,6 +38,12 @@ var _active_events: Dictionary = {}
 var _event_timers: Dictionary = {}
 var _last_event_days: Dictionary = {}
 
+func _ready() -> void:
+	EventBus.day_changed.connect(_on_day_changed)
+
+func _on_day_changed(day: int) -> void:
+	check_daily_events()
+
 func _process(delta: float) -> void:
 	if delta <= 0 or delta > 10:
 		return
@@ -60,6 +66,12 @@ func get_active_events() -> Dictionary:
 
 func is_event_active(event_id: String) -> bool:
 	return _active_events.has(event_id)
+
+func has_active_events() -> bool:
+	return not _active_events.is_empty()
+
+func get_active_event_count() -> int:
+	return _active_events.size()
 
 func get_event_modifiers() -> Dictionary:
 	var all = {}

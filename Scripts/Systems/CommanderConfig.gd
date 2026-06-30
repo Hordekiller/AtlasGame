@@ -178,6 +178,106 @@ const COMMANDERS := {
 				"modifiers": {"tidal_damage": 0.5}
 			}
 		]
+	},
+	"merchant": {
+		"name": "بازرگان",
+		"type": "support",
+		"rarity": "common",
+		"base_stats": {
+			"attack": 50, "defense": 50, "health": 600,
+			"march_speed_bonus": 0.0
+		},
+		"skills": [
+			{
+				"id": "trade_master", "name": "استاد تجارت",
+				"description": "قیمت خرید -۲۰٪، قیمت فروش +۲۰٪",
+				"type": "passive",
+				"unlock_tier": 1,
+				"modifiers": {"buy_discount": 0.8, "sell_bonus": 1.2}
+			},
+			{
+				"id": "convoy", "name": "کاروان",
+				"description": "ظرفیت مسیر تجاری +۵۰٪",
+				"type": "passive",
+				"unlock_tier": 2,
+				"modifiers": {"trade_capacity": 1.5}
+			}
+		]
+	},
+	"scout": {
+		"name": "پیشاهنگ",
+		"type": "land",
+		"rarity": "rare",
+		"base_stats": {
+			"attack": 90, "defense": 60, "health": 800,
+			"march_speed_bonus": 0.25
+		},
+		"skills": [
+			{
+				"id": "pathfinder", "name": "راه‌یاب",
+				"description": "زمان حرکت ناوگان -۳۰٪",
+				"type": "passive",
+				"unlock_tier": 1,
+				"modifiers": {"march_speed": 1.3}
+			},
+			{
+				"id": "reveal", "name": "آشکارسازی",
+				"description": "جزایر همسایه را روی نقشه نشان می‌دهد",
+				"type": "passive",
+				"unlock_tier": 2,
+				"modifiers": {"vision_range": 2}
+			}
+		]
+	},
+	"oracle": {
+		"name": "پیشگو",
+		"type": "support",
+		"rarity": "rare",
+		"base_stats": {
+			"attack": 60, "defense": 80, "health": 700,
+			"march_speed_bonus": 0.0
+		},
+		"skills": [
+			{
+				"id": "wisdom", "name": "فرزانگی",
+				"description": "سرعت پژوهش +۳۰٪",
+				"type": "passive",
+				"unlock_tier": 1,
+				"modifiers": {"research_speed": 1.3}
+			},
+			{
+				"id": "foresight", "name": "پیش‌بینی",
+				"description": "هزینه تحقیق -۲۰٪",
+				"type": "passive",
+				"unlock_tier": 2,
+				"modifiers": {"research_cost": 0.8}
+			}
+		]
+	},
+	"engineer": {
+		"name": "مهندس",
+		"type": "support",
+		"rarity": "rare",
+		"base_stats": {
+			"attack": 70, "defense": 90, "health": 900,
+			"march_speed_bonus": 0.0
+		},
+		"skills": [
+			{
+				"id": "fortification", "name": "استحکامات",
+				"description": "دیوار دفاعی +۵۰٪",
+				"type": "passive",
+				"unlock_tier": 1,
+				"modifiers": {"wall_defense": 1.5}
+			},
+			{
+				"id": "siege_master", "name": "استاد محاصره",
+				"description": "خسارت به دیوار ×۲",
+				"type": "passive",
+				"unlock_tier": 3,
+				"modifiers": {"siege_damage": 2.0}
+			}
+		]
 	}
 }
 

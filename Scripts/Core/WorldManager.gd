@@ -1,7 +1,7 @@
 extends Node
 
 const WORLD_SEED: int = 42
-const ISLAND_COUNT: int = 20
+const ISLAND_COUNT: int = 25
 const CITIES_PER_ISLAND: int = 4
 
 func generate_world() -> void:

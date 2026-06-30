@@ -6,6 +6,34 @@ const BUS_MUSIC: String = "Music"
 const BUS_SFX: String = "SFX"
 const BUS_UI: String = "UI"
 
+const SFX: Dictionary = {
+	"build": "res://Assets/Audio/SFX/build.wav",
+	"upgrade": "res://Assets/Audio/SFX/upgrade.wav",
+	"train": "res://Assets/Audio/SFX/train.wav",
+	"research": "res://Assets/Audio/SFX/research.wav",
+	"battle_start": "res://Assets/Audio/SFX/battle_start.wav",
+	"battle_hit": "res://Assets/Audio/SFX/battle_hit.wav",
+	"battle_end": "res://Assets/Audio/SFX/battle_end.wav",
+	"click": "res://Assets/Audio/SFX/click.wav",
+	"error": "res://Assets/Audio/SFX/error.wav",
+	"notification": "res://Assets/Audio/SFX/notification.wav",
+	"colonize": "res://Assets/Audio/SFX/colonize.wav",
+	"trade": "res://Assets/Audio/SFX/trade.wav",
+	"spy": "res://Assets/Audio/SFX/spy.wav",
+	"level_up": "res://Assets/Audio/SFX/level_up.wav",
+	"victory": "res://Assets/Audio/SFX/victory.wav",
+	"defeat": "res://Assets/Audio/SFX/defeat.wav"
+}
+
+const SFX_PRIORITY: Dictionary = {
+	"battle_start": 3, "battle_hit": 3, "battle_end": 3,
+	"colonize": 3, "spy": 3, "victory": 3, "defeat": 3,
+	"build": 2, "upgrade": 2, "train": 2, "research": 2, "trade": 2, "level_up": 2,
+	"click": 1, "error": 1, "notification": 1
+}
+
+var sfx_bus: String = BUS_SFX
+
 var _volumes: Dictionary = {
 	BUS_MASTER: 0.8,
 	BUS_MUSIC: 0.7,
@@ -15,10 +43,12 @@ var _volumes: Dictionary = {
 
 var _sfx_cache: Dictionary = {}
 var _music_stream: AudioStreamPlayer = null
+var _active_sfx: Dictionary = {}
 
 func _ready() -> void:
 	_setup_busses()
 	_load_settings()
+	preload_sfx()
 
 func _setup_busses() -> void:
 	for bus_name in [BUS_MASTER, BUS_MUSIC, BUS_SFX, BUS_UI]:
@@ -59,19 +89,42 @@ func set_volume(bus_name: String, linear: float) -> void:
 func get_volume(bus_name: String) -> float:
 	return _volumes.get(bus_name, 0.8)
 
-func play_sfx(path: String, volume: float = 1.0) -> void:
-	if _volumes[BUS_SFX] <= 0.0:
+func preload_sfx() -> void:
+	for name in SFX:
+		var path: String = SFX[name]
+		if ResourceLoader.exists(path):
+			_sfx_cache[name] = ResourceLoader.load(path)
+
+func play_sfx(name: String, volume_override: float = 1.0) -> void:
+	if not SFX.has(name):
+		push_warning("Unknown SFX: ", name)
 		return
+	if _volumes[sfx_bus] <= 0.0:
+		return
+	var new_priority: int = SFX_PRIORITY.get(name, 0)
+	if _active_sfx.has(name):
+		var active = _active_sfx[name]
+		if active["priority"] >= new_priority and is_instance_valid(active["player"]):
+			return
+	var path: String = SFX[name]
 	var stream: AudioStream = _get_stream(path)
 	if not stream:
-		return
+		stream = _sfx_cache.get(name)
+		if not stream:
+			return
 	var player = AudioStreamPlayer2D.new()
 	player.stream = stream
-	player.bus = BUS_SFX
-	player.volume_db = linear_to_db(volume)
+	player.bus = sfx_bus
+	player.volume_db = linear_to_db(volume_override)
 	add_child(player)
-	player.finished.connect(player.queue_free)
+	_active_sfx[name] = {"priority": new_priority, "player": player}
+	player.finished.connect(_on_sfx_finished.bind(name, player))
 	player.play()
+
+func _on_sfx_finished(name: String, player: AudioStreamPlayer2D) -> void:
+	if _active_sfx.get(name, {}).get("player") == player:
+		_active_sfx.erase(name)
+	player.queue_free()
 
 func play_ui_sfx(path: String) -> void:
 	if _volumes[BUS_UI] <= 0.0:
@@ -121,22 +174,22 @@ func _get_stream(path: String) -> AudioStream:
 	return null
 
 func play_button_click() -> void:
-	play_ui_sfx("res://Assets/Audio/SFX/click.wav")
+	play_sfx("click")
 
 func play_build() -> void:
-	play_ui_sfx("res://Assets/Audio/SFX/build.wav")
+	play_sfx("build")
 
 func play_upgrade() -> void:
-	play_ui_sfx("res://Assets/Audio/SFX/upgrade.wav")
+	play_sfx("upgrade")
 
 func play_trade() -> void:
-	play_ui_sfx("res://Assets/Audio/SFX/trade.wav")
+	play_sfx("trade")
 
 func play_notification() -> void:
-	play_ui_sfx("res://Assets/Audio/SFX/notification.wav")
+	play_sfx("notification")
 
 func play_error() -> void:
-	play_ui_sfx("res://Assets/Audio/SFX/error.wav")
+	play_sfx("error")
 
 func play_main_theme() -> void:
 	play_music("res://Assets/Audio/Music/start_of_civilisation.wav")
