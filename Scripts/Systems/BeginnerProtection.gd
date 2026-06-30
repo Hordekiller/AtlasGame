@@ -51,3 +51,15 @@ func _save() -> void:
 	cfg.set_value("protection", "start_time", _start_time)
 	cfg.set_value("protection", "active", _is_active)
 	cfg.save("user://protection.cfg")
+
+func get_save_data() -> Dictionary:
+	return {
+		"start_time": _start_time,
+		"is_active": _is_active
+	}
+
+func load_save_data(data: Dictionary) -> void:
+	_start_time = data.get("start_time", -1.0)
+	_is_active = data.get("is_active", false)
+	if _start_time >= 0:
+		is_protected()

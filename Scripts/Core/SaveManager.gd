@@ -10,6 +10,17 @@ func save_game(slot: int = 0) -> void:
 	var data = GameState.to_dict()
 	data["version"] = Globals.VERSION
 	data["save_time"] = Time.get_unix_time_from_system()
+	data["economy"] = EconomyManager.get_save_data()
+	data["research"] = ResearchManager.get_save_data()
+	data["military"] = MilitaryManager.get_save_data()
+	data["army_travel"] = ArmyTravel.get_save_data()
+	data["game_state"] = GameStateManager.get_save_data()
+	data["quest"] = QuestSystem.get_save_data()
+	data["event"] = EventSystem.get_save_data()
+	data["spy"] = SpySystem.get_save_data()
+	data["marketplace"] = MarketplaceManager.get_save_data()
+	data["protection"] = BeginnerProtection.get_save_data()
+	data["notifications"] = NotificationManager.get_save_data()
 	var game = get_parent().get_node_or_null("Game")
 	if game and game.has_node("TutorialManager"):
 		data["tutorial"] = game.get_node("TutorialManager").save_state()
@@ -34,6 +45,19 @@ func load_game(slot: int = 0) -> bool:
 		var data = file.get_var()
 		file.close()
 		GameState.from_dict(data)
+
+		EconomyManager.load_save_data(data.get("economy", {}))
+		ResearchManager.load_save_data(data.get("research", {}))
+		MilitaryManager.load_save_data(data.get("military", {}))
+		ArmyTravel.load_save_data(data.get("army_travel", {}))
+		GameStateManager.load_save_data(data.get("game_state", {}))
+		QuestSystem.load_save_data(data.get("quest", {}))
+		EventSystem.load_save_data(data.get("event", {}))
+		SpySystem.load_save_data(data.get("spy", {}))
+		MarketplaceManager.load_save_data(data.get("marketplace", {}))
+		BeginnerProtection.load_save_data(data.get("protection", {}))
+		NotificationManager.load_save_data(data.get("notifications", {}))
+
 		if data.has("tutorial"):
 			var game = get_parent().get_node_or_null("Game")
 			if game and game.has_node("TutorialManager"):

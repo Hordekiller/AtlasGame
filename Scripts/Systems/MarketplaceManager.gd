@@ -319,3 +319,13 @@ func cancel_offer(offer_id: String) -> bool:
 				EconomyManager.add_resources(offer.city_id, Globals.ResourceType.GOLD, refund)
 			return true
 	return false
+
+func get_save_data() -> Dictionary:
+	return {
+		"active_merchants": _active_merchants,
+		"merchant_timers": _merchant_timers
+	}
+
+func load_save_data(data: Dictionary) -> void:
+	_active_merchants = data.get("active_merchants", {})
+	_merchant_timers = data.get("merchant_timers", {})

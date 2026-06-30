@@ -590,3 +590,22 @@ func _complete_research(city_id: String, city: Dictionary, tech_id: String) -> v
 			city["unlocked_units"].append(unit_id)
 
 	EventBus.research_completed.emit(tech_id)
+
+func get_save_data() -> Dictionary:
+	var data = {}
+	for cid in GameState.current_cities:
+		var city = GameState.current_cities[cid]
+		data[cid] = {
+			"research_in_progress": city.get("research_in_progress", ""),
+			"research_progress": city.get("research_progress", 0.0),
+			"research_completed": city.get("research_completed", [])
+		}
+	return data
+
+func load_save_data(data: Dictionary) -> void:
+	for cid in data:
+		var city = GameState.current_cities.get(cid)
+		if city:
+			city["research_in_progress"] = data[cid].get("research_in_progress", "")
+			city["research_progress"] = data[cid].get("research_progress", 0.0)
+			city["research_completed"] = data[cid].get("research_completed", [])

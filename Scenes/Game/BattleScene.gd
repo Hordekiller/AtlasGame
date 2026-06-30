@@ -41,16 +41,27 @@ func _ready() -> void:
 		close_btn.texture_normal = ResourceLoader.load(tex_path)
 	close_btn.pressed.connect(_close)
 	retreat_btn.pressed.connect(_retreat)
+	var cr_btn = $VBox/ResultPanel/CloseReportBtn
+	if cr_btn:
+		cr_btn.pressed.connect(_close)
 	result_panel.hide()
 	hide()
 
-func start_battle(battle_id: String, attacker: Dictionary, defender: Dictionary) -> void:
-	_battle_state = CombatSystem.create_battle(attacker, defender, battle_id)
-	_is_player_attacker = attacker.get("city_id", "") == GameState.selected_city_id
-	var atk_name = attacker.get("name", "???") if attacker.get("name", "") != "" else attacker.get("city_id", "???")
-	var def_name = defender.get("name", "???") if defender.get("name", "") != "" else defender.get("city_id", "???")
-	attacker_label.text = "مهاجم: " + atk_name
-	defender_label.text = "مدافع: " + def_name
+func start_battle(battle_state_or_id, attacker_or_dict = null, defender_or_dict = null) -> void:
+	if typeof(battle_state_or_id) == TYPE_OBJECT:
+		_battle_state = battle_state_or_id
+		var atk_id = _battle_state.attacker.get("city_id", "???")
+		var def_id = _battle_state.defender.get("city_id", "???")
+		_is_player_attacker = atk_id == GameState.selected_city_id or atk_id in GameState.current_cities
+		attacker_label.text = "مهاجم: " + atk_id
+		defender_label.text = "مدافع: " + def_id
+	else:
+		_battle_state = CombatSystem.create_battle(attacker_or_dict, defender_or_dict, battle_state_or_id)
+		_is_player_attacker = attacker_or_dict.get("city_id", "") == GameState.selected_city_id
+		var atk_name = attacker_or_dict.get("name", "???") if attacker_or_dict.get("name", "") != "" else attacker_or_dict.get("city_id", "???")
+		var def_name = defender_or_dict.get("name", "???") if defender_or_dict.get("name", "") != "" else defender_or_dict.get("city_id", "???")
+		attacker_label.text = "مهاجم: " + atk_name
+		defender_label.text = "مدافع: " + def_name
 	_current_round = 0
 	round_label.text = "راند ۰"
 	timer_label.text = "۵:۰۰"

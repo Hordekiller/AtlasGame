@@ -55,6 +55,9 @@ func _ready() -> void:
 	amb_timer.timeout.connect(AudioManager.play_ambient_ocean)
 	add_child(amb_timer)
 	amb_timer.start()
+	GameStateManager.game_won.connect(_on_game_won)
+	GameStateManager.game_lost.connect(_on_game_lost)
+	ArmyTravel.army_arrived.connect(_on_army_arrived)
 
 func _on_game_loaded() -> void:
 	update_all()
@@ -111,6 +114,29 @@ func _on_exit_cancel() -> void:
 	AudioManager.play_button_click()
 	if exit_dialog:
 		exit_dialog.hide()
+
+func _on_game_won(reason: String) -> void:
+	UIManager.show_notification("🎉 " + reason, "success")
+	SaveManager.save_game(0)
+
+func _on_game_lost(reason: String) -> void:
+	UIManager.show_notification("💀 " + reason, "error")
+	SaveManager.save_game(0)
+
+func _on_army_arrived(travel_id: String, origin_city_id: String, target_island_id: String, units: Dictionary, commander_id: String) -> void:
+	var target = GameState.current_islands.get(target_island_id, {})
+	var target_cities = target.get("player_cities", [])
+	var target_city_id = ""
+	for cid in target_cities:
+		if GameState.current_cities.get(cid, {}).get("player", "") == "NPC":
+			target_city_id = cid
+			break
+	if target_city_id.is_empty():
+		ArmyTravel.return_army(origin_city_id, units)
+		return
+	var battle = CombatSystem.create_battle(origin_city_id, target_city_id, units, commander_id)
+	ArmyTravel.return_army(origin_city_id, battle.get("survivors", {}))
+	EventBus.battle_completed.emit(battle.get("battle_id", travel_id), battle.get("winner", ""))
 
 func _check_daily_reward() -> void:
 	if daily_reward and daily_reward.has_method("check_and_show"):

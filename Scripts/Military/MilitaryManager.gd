@@ -492,6 +492,32 @@ func get_unit_upkeep(city_id: String) -> Dictionary:
 			total[r] = total.get(r, 0.0) + defn["upkeep"][r] * count
 	return total
 
+func is_unit_unlocked(city_id: String, unit_type: String) -> bool:
+	var defn = UNIT_DEFINITIONS.get(unit_type, {})
+	if defn.is_empty():
+		return false
+	if defn.get("tier", 1) <= 1:
+		return true
+	var city = GameState.current_cities.get(city_id, {})
+	var unlocked = city.get("unlocked_units", [])
+	return unit_type in unlocked
+
+func get_save_data() -> Dictionary:
+	var data = {}
+	for cid in GameState.current_cities:
+		var city = GameState.current_cities[cid]
+		var city_units = city.get("units", {})
+		data[cid] = {}
+		for ut in city_units:
+			data[cid][ut] = city_units[ut].duplicate(true)
+	return data
+
+func load_save_data(data: Dictionary) -> void:
+	for cid in data:
+		var city = GameState.current_cities.get(cid)
+		if city:
+			city["units"] = data[cid]
+
 func has_navy(city_id: String) -> bool:
 	var city = GameState.current_cities.get(city_id)
 	if not city:

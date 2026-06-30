@@ -262,3 +262,11 @@ func process_tick() -> void:
 	if GameState.current_day > 0:
 		WorldManager.process_trade_routes()
 		WorldManager.process_arriving_trades()
+	GameStateManager.check_win_conditions()
+	GameStateManager.check_lose_conditions()
+
+func get_save_data() -> Dictionary:
+	return {}
+
+func load_save_data(_data: Dictionary) -> void:
+	pass

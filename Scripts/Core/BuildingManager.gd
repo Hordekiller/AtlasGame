@@ -857,6 +857,7 @@ func process_tick() -> void:
 					data["constructed"] = true
 					data["construct_time_left"] = 0.0
 					EconomyManager.recalculate_city_production(city_id)
+					AudioManager.play_build()
 					EventBus.building_construct_complete.emit(city_id, data.get("grid_pos", pos), data.get("id", ""))
 
 			elif upgrading:
@@ -874,5 +875,6 @@ func process_tick() -> void:
 					data["level"] = data.get("target_level", data["level"] + 1)
 					EconomyManager.recalculate_city_production(city_id)
 					var new_level = data.get("level", 1)
+					AudioManager.play_upgrade()
 					EventBus.building_upgrade_complete.emit(city_id, data.get("grid_pos", pos), data.get("id", ""), new_level)
 					EventBus.building_upgraded.emit(city_id, data.get("id", ""), new_level)

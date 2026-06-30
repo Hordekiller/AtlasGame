@@ -311,3 +311,11 @@ func get_missions_against_city(city_id: String) -> Array:
 		if mission.target_city_id == city_id:
 			result.append(mission)
 	return result
+
+func get_save_data() -> Dictionary:
+	return {
+		"active_missions": _active_missions
+	}
+
+func load_save_data(data: Dictionary) -> void:
+	_active_missions = data.get("active_missions", {})

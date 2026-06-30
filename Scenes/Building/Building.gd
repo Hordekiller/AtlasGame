@@ -302,6 +302,7 @@ func _make_progress_bar(wc: Vector2, size: Vector2i, progress: float, color: Col
 
 func _on_clicked(_viewport: Node, event: InputEvent, _si: int) -> void:
 	if event is InputEventMouseButton and event.is_pressed() and event.button_index == MOUSE_BUTTON_LEFT:
+		AudioManager.play_button_click()
 		clicked.emit(building_data, grid_pos)
 
 func _clear_children() -> void:

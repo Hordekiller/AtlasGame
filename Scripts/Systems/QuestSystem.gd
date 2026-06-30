@@ -57,6 +57,7 @@ const QUESTS := {
 var _active_quests: Dictionary = {}
 var _completed_quests: Array = []
 var _progress: Dictionary = {}
+var _last_quest_reset: int = 0
 
 func _ready() -> void:
 	EventBus.building_constructed.connect(_on_building_event)
@@ -168,3 +169,13 @@ func from_dict(data: Dictionary) -> void:
 	_active_quests = data.get("active", {})
 	_completed_quests = data.get("completed", [])
 	_progress = data.get("progress", {})
+
+func get_save_data() -> Dictionary:
+	return {
+		"quest_progress": _progress,
+		"last_quest_reset": _last_quest_reset
+	}
+
+func load_save_data(data: Dictionary) -> void:
+	_progress = data.get("quest_progress", {})
+	_last_quest_reset = data.get("last_quest_reset", 0)

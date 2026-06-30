@@ -102,3 +102,9 @@ func from_dict(data: Dictionary) -> void:
 	_active_events = data.get("active", {})
 	_event_timers = data.get("timers", {})
 	_last_event_days = data.get("last_days", {})
+
+func get_save_data() -> Dictionary:
+	return to_dict()
+
+func load_save_data(data: Dictionary) -> void:
+	from_dict(data)
