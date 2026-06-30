@@ -4,13 +4,13 @@ signal quest_started(quest_id: String)
 signal quest_completed(quest_id: String)
 signal quest_progress(quest_id: String, current: int, target: int)
 
-const QUESTS := {
+const STORY_QUESTS := {
 	"first_build": {
 		"name": "اولین ساختمان",
 		"description": "یک ساختمان در شهر خود بسازید",
 		"category": "building",
 		"objectives": [{"type": "build", "target": 1}],
-		"rewards": {"gold": 100, "wood": 50}
+		"rewards": {Globals.ResourceType.GOLD: 100, Globals.ResourceType.WOOD: 50}
 	},
 	"first_upgrade": {
 		"name": "ارتقاء اول",
@@ -18,7 +18,7 @@ const QUESTS := {
 		"category": "building",
 		"prerequisite": "first_build",
 		"objectives": [{"type": "upgrade", "target": 1}],
-		"rewards": {"gold": 200, "crystal": 25}
+		"rewards": {Globals.ResourceType.GOLD: 200, Globals.ResourceType.CRYSTAL: 25}
 	},
 	"population_50": {
 		"name": "رشد جمعیت",
@@ -26,7 +26,7 @@ const QUESTS := {
 		"category": "economy",
 		"prerequisite": "first_upgrade",
 		"objectives": [{"type": "population", "target": 50}],
-		"rewards": {"gold": 300, "wine": 20}
+		"rewards": {Globals.ResourceType.GOLD: 300, Globals.ResourceType.WINE: 20}
 	},
 	"research_first": {
 		"name": "نخستین پژوهش",
@@ -34,7 +34,7 @@ const QUESTS := {
 		"category": "research",
 		"prerequisite": "first_upgrade",
 		"objectives": [{"type": "research", "target": 1}],
-		"rewards": {"gold": 250, "research_points": 50}
+		"rewards": {Globals.ResourceType.GOLD: 250, Globals.ResourceType.RESEARCH_PTS: 50}
 	},
 	"train_army": {
 		"name": "ارتش کوچک",
@@ -42,15 +42,46 @@ const QUESTS := {
 		"category": "military",
 		"prerequisite": "first_upgrade",
 		"objectives": [{"type": "train", "target": 10}],
-		"rewards": {"gold": 500, "sulfur": 30}
+		"rewards": {Globals.ResourceType.GOLD: 500, Globals.ResourceType.SULFUR: 30}
+	}
+}
+
+const DAILY_QUESTS := {
+	"gatherer": {
+		"name": "جمع‌آوری کننده",
+		"description": "۵۰۰ چوب جمع‌آوری کنید",
+		"objectives": [{"type": "gather_wood", "target": 500}],
+		"rewards": {Globals.ResourceType.GOLD: 50}
 	},
-	"daily_login": {
-		"name": "ورود روزانه",
-		"description": "هر روز برای دریافت جایزه وارد شوید",
-		"category": "daily",
-		"repeatable": true,
+	"builder_daily": {
+		"name": "سازنده",
+		"description": "۱ ساختمان بسازید",
+		"objectives": [{"type": "build", "target": 1}],
+		"rewards": {Globals.ResourceType.STONE: 100}
+	},
+	"scholar": {
+		"name": "دانشمند",
+		"description": "۱۰۰ امتیاز پژوهش کسب کنید",
+		"objectives": [{"type": "research_pts", "target": 100}],
+		"rewards": {Globals.ResourceType.CRYSTAL: 10}
+	},
+	"recruiter": {
+		"name": "استخدام کننده",
+		"description": "۱۰ واحد نظامی آموزش دهید",
+		"objectives": [{"type": "train", "target": 10}],
+		"rewards": {Globals.ResourceType.GOLD: 200}
+	},
+	"explorer": {
+		"name": "کاوشگر",
+		"description": "به نقشه جهان سر بزنید",
+		"objectives": [{"type": "visit_map", "target": 1}],
+		"rewards": {Globals.ResourceType.WINE: 10}
+	},
+	"loyal": {
+		"name": "وفادار",
+		"description": "امروز وارد بازی شوید",
 		"objectives": [{"type": "login", "target": 1}],
-		"rewards": {"gold": 100, "ambrosia": 5}
+		"rewards": {Globals.ResourceType.RESEARCH_PTS: 25}
 	}
 }
 
@@ -63,9 +94,11 @@ func _ready() -> void:
 	EventBus.building_constructed.connect(_on_building_event)
 	EventBus.building_upgraded.connect(_on_upgrade_event)
 	EventBus.research_completed.connect(_on_research_event)
+	EventBus.unit_trained.connect(_on_unit_trained)
+	EventBus.day_changed.connect(_on_day_changed)
 
-func get_all_quests() -> Dictionary:
-	return QUESTS.duplicate(true)
+func get_all_story_quests() -> Dictionary:
+	return STORY_QUESTS.duplicate(true)
 
 func get_active_quests() -> Dictionary:
 	return _active_quests.duplicate(true)
@@ -80,7 +113,9 @@ func is_quest_active(quest_id: String) -> bool:
 	return _active_quests.has(quest_id)
 
 func is_available(quest_id: String) -> bool:
-	var quest = QUESTS.get(quest_id, {})
+	var quest = STORY_QUESTS.get(quest_id, {})
+	if quest.is_empty():
+		quest = DAILY_QUESTS.get(quest_id, {})
 	if quest.is_empty():
 		return false
 	if quest_id in _completed_quests and not quest.get("repeatable", false):
@@ -95,9 +130,12 @@ func is_available(quest_id: String) -> bool:
 func start_quest(quest_id: String) -> bool:
 	if not is_available(quest_id):
 		return false
-	_active_quests[quest_id] = QUESTS[quest_id]
+	var quest = STORY_QUESTS.get(quest_id, DAILY_QUESTS.get(quest_id, {}))
+	if quest.is_empty():
+		return false
+	_active_quests[quest_id] = quest
 	_progress[quest_id] = {}
-	for obj in QUESTS[quest_id].get("objectives", []):
+	for obj in quest.get("objectives", []):
 		_progress[quest_id][obj.get("type", "")] = 0
 	quest_started.emit(quest_id)
 	return true
@@ -109,73 +147,81 @@ func _increment_progress(quest_id: String, obj_type: String, amount: int = 1) ->
 		return
 	var current = _progress[quest_id].get(obj_type, 0) + amount
 	_progress[quest_id][obj_type] = current
-	var target = _get_target_for_objective(quest_id, obj_type)
+	var quest = STORY_QUESTS.get(quest_id, DAILY_QUESTS.get(quest_id, {}))
+	var target = 1
+	for obj in quest.get("objectives", []):
+		if obj.get("type", "") == obj_type:
+			target = obj.get("target", 1)
+			break
 	quest_progress.emit(quest_id, current, target)
 	if current >= target:
 		_complete_quest(quest_id)
-
-func _get_target_for_objective(quest_id: String, obj_type: String) -> int:
-	var quest = QUESTS.get(quest_id, {})
-	for obj in quest.get("objectives", []):
-		if obj.get("type", "") == obj_type:
-			return obj.get("target", 1)
-	return 1
 
 func _complete_quest(quest_id: String) -> void:
 	if quest_id in _completed_quests:
 		return
 	_completed_quests.append(quest_id)
 	_active_quests.erase(quest_id)
-	var rewards = QUESTS.get(quest_id, {}).get("rewards", {})
+	var quest = STORY_QUESTS.get(quest_id, DAILY_QUESTS.get(quest_id, {}))
+	if quest.is_empty():
+		return
+	var rewards = quest.get("rewards", {})
 	var city_id = GameState.selected_city_id
 	if not city_id.is_empty():
 		for rtype in rewards:
-			if typeof(rtype) == TYPE_STRING and rtype == "ambrosia":
-				continue
-			var rti = Globals.RESOURCE_DISPLAY_NAMES.find_key(rtype)
-			if rti != null:
-				EconomyManager.change_resource(city_id, int(rti), rewards[rtype])
+			if rtype is int:
+				EconomyManager.change_resource(city_id, rtype, rewards[rtype])
 	quest_completed.emit(quest_id)
 
-func _on_building_event(city_id: String, _building_id: String, _grid_pos: Vector2i) -> void:
+func check_login() -> void:
+	for qid in DAILY_QUESTS:
+		if qid in _completed_quests:
+			_completed_quests.erase(qid)
+		if qid in _active_quests:
+			_active_quests.erase(qid)
+		if is_available(qid):
+			start_quest(qid)
+			if qid == "loyal":
+				_increment_progress(qid, "login")
+
+func _on_day_changed(_day: int) -> void:
+	if _last_quest_reset < _day:
+		_last_quest_reset = _day
+		check_login()
+
+func _on_building_event(_city_id: String, _building_id: String, _grid_pos: Vector2i) -> void:
 	for qid in _active_quests:
 		_increment_progress(qid, "build")
 
-func _on_upgrade_event(city_id: String, _building_id: String, _grid_pos: Vector2i) -> void:
+func _on_upgrade_event(_city_id: String, _building_id: String, _extra) -> void:
 	for qid in _active_quests:
 		_increment_progress(qid, "upgrade")
 
 func _on_research_event(_tech_id: String) -> void:
 	for qid in _active_quests:
 		_increment_progress(qid, "research")
+		_increment_progress(qid, "research_pts", 50)
 
-func check_login() -> void:
-	for qid in QUESTS:
-		if QUESTS[qid].get("category", "") == "daily":
-			if qid in _completed_quests and QUESTS[qid].get("repeatable", false):
-				_completed_quests.erase(qid)
-			if is_available(qid):
-				start_quest(qid)
-				_increment_progress(qid, "login")
+func _on_unit_trained(_city_id: String, _unit_type: String, count: int) -> void:
+	for qid in _active_quests:
+		_increment_progress(qid, "train", count)
 
 func to_dict() -> Dictionary:
 	return {
-		"active": _active_quests,
-		"completed": _completed_quests,
-		"progress": _progress
-	}
-
-func from_dict(data: Dictionary) -> void:
-	_active_quests = data.get("active", {})
-	_completed_quests = data.get("completed", [])
-	_progress = data.get("progress", {})
-
-func get_save_data() -> Dictionary:
-	return {
-		"quest_progress": _progress,
+		"active": _active_quests.duplicate(true),
+		"completed": _completed_quests.duplicate(),
+		"progress": _progress.duplicate(true),
 		"last_quest_reset": _last_quest_reset
 	}
 
-func load_save_data(data: Dictionary) -> void:
-	_progress = data.get("quest_progress", {})
+func from_dict(data: Dictionary) -> void:
+	_active_quests = data.get("active", {}).duplicate(true)
+	_completed_quests = data.get("completed", []).duplicate()
+	_progress = data.get("progress", {}).duplicate(true)
 	_last_quest_reset = data.get("last_quest_reset", 0)
+
+func get_save_data() -> Dictionary:
+	return to_dict()
+
+func load_save_data(data: Dictionary) -> void:
+	from_dict(data)

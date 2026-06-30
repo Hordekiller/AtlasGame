@@ -3,14 +3,47 @@ extends Node
 signal commander_leveled_up(commander_id: String, new_level: int)
 signal commander_skill_unlocked(commander_id: String, skill_id: String)
 signal commander_gained_exp(commander_id: String, exp: int, total: int)
+signal commander_shard_collected(commander_id: String, shards: int, total_needed: int)
 
 const EXP_PER_LEVEL: int = 100
 const MAX_COMMANDER_LEVEL: int = 50
 
+const SHARD_REQUIREMENTS := {
+	"common": 10, "rare": 25, "epic": 50, "legendary": 100
+}
+
+const SKILL_TIER_LEVELS := {
+	1: 1, 2: 5, 3: 10, 4: 20, 5: 35
+}
+
 var _commanders: Dictionary = {}
+var _commander_shards: Dictionary = {}
 
 func has_commander(commander_id: String) -> bool:
 	return _commanders.has(commander_id)
+
+func get_shards(commander_id: String) -> int:
+	return _commander_shards.get(commander_id, 0)
+
+func get_shards_needed(commander_id: String) -> int:
+	var config = CommanderConfig.get_commander(commander_id)
+	if config.is_empty():
+		return 999
+	var rarity = config.get("rarity", "common")
+	return SHARD_REQUIREMENTS.get(rarity, 10)
+
+func collect_shards(commander_id: String, amount: int) -> bool:
+	var current = _commander_shards.get(commander_id, 0)
+	var needed = get_shards_needed(commander_id)
+	if _commanders.has(commander_id):
+		return false
+	current += amount
+	_commander_shards[commander_id] = current
+	commander_shard_collected.emit(commander_id, current, needed)
+	if current >= needed:
+		_commander_shards[commander_id] = 0
+		return add_commander(commander_id)
+	return false
 
 func get_commander_data(commander_id: String) -> Dictionary:
 	if not _commanders.has(commander_id):
@@ -33,6 +66,7 @@ func add_commander(commander_id: String) -> bool:
 	var config = CommanderConfig.get_commander(commander_id)
 	if config.is_empty():
 		return false
+	_commander_shards.erase(commander_id)
 	_commanders[commander_id] = {
 		"id": commander_id,
 		"level": 1,
@@ -84,7 +118,8 @@ func _check_skill_unlock(commander_id: String) -> void:
 	for skill in config.get("skills", []):
 		var sid = skill.get("id", "")
 		var tier = skill.get("unlock_tier", 1)
-		if sid not in data["unlocked_skills"] and data["level"] >= tier * 10:
+		var required_level = SKILL_TIER_LEVELS.get(tier, tier * 10)
+		if sid not in data["unlocked_skills"] and data["level"] >= required_level:
 			data["unlocked_skills"].append(sid)
 			commander_skill_unlocked.emit(commander_id, sid)
 
@@ -120,7 +155,8 @@ func get_commander_for_city(city_id: String) -> Dictionary:
 	return {}
 
 func to_dict() -> Dictionary:
-	return _commanders.duplicate()
+	return {"commanders": _commanders.duplicate(true), "shards": _commander_shards.duplicate()}
 
 func from_dict(data: Dictionary) -> void:
-	_commanders = data.duplicate()
+	_commanders = data.get("commanders", {}).duplicate(true)
+	_commander_shards = data.get("shards", {}).duplicate()

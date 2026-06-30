@@ -15,6 +15,9 @@ var selected_city_id: String = ""
 var selected_building_pos: Vector2i = Vector2i(-1, -1)
 var player_gold: float = 500.0
 var player_gems: float = 0.0
+var daily_reward_state: Dictionary = {
+	"last_claim_day": 0, "claim_count": 0, "streak": 0
+}
 
 func reset() -> void:
 	current_cities.clear()
@@ -32,6 +35,7 @@ func reset() -> void:
 	selected_building_pos = Vector2i(-1, -1)
 	player_gold = 500.0
 	player_gems = 0.0
+	daily_reward_state = {"last_claim_day": 0, "claim_count": 0, "streak": 0}
 
 func to_dict() -> Dictionary:
 	return {
@@ -49,7 +53,8 @@ func to_dict() -> Dictionary:
 		"player_gems": player_gems,
 		"time_speed": time_speed,
 		"selected_city_id": selected_city_id,
-		"selected_building_pos": selected_building_pos
+		"selected_building_pos": selected_building_pos,
+		"daily_reward": daily_reward_state
 	}
 
 func from_dict(data: Dictionary) -> void:
@@ -68,3 +73,4 @@ func from_dict(data: Dictionary) -> void:
 	time_speed = data.get("time_speed", 1.0)
 	selected_city_id = data.get("selected_city_id", "")
 	selected_building_pos = data.get("selected_building_pos", Vector2i(-1, -1))
+	daily_reward_state = data.get("daily_reward", {"last_claim_day": 0, "claim_count": 0, "streak": 0})

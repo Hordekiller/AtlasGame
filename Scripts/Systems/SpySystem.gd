@@ -128,6 +128,12 @@ func process_tick() -> void:
 			EventBus.spy_mission_completed.emit(mission.city_id, mission.target_city_id, mission.mission_type, mission.success, mission.result)
 		_active_missions.erase(mission_id)
 
+func _get_spy_commander_level(city_id: String) -> int:
+	var cmd = CommanderSystem.get_commander_for_city(city_id)
+	if cmd.is_empty():
+		return 0
+	return cmd.get("level", 0)
+
 func _execute_mission(mission: Dictionary) -> void:
 	var city_id = mission.city_id
 	var target_city_id = mission.target_city_id
@@ -135,8 +141,10 @@ func _execute_mission(mission: Dictionary) -> void:
 
 	var hideout_level = _get_hideout_level(city_id)
 	var target_hideout_level = _get_hideout_level(target_city_id)
+	var spy_level = _get_spy_commander_level(city_id)
 
 	var base_success = MISSION_BASE_SUCCESS.get(mission_type, 0.5)
+	var success_chance = base_success + spy_level * 0.1 - target_hideout_level * 0.03
 	var success_chance = base_success + hideout_level * 0.05 - target_hideout_level * 0.03
 	success_chance = clampf(success_chance, 0.05, 0.95)
 
@@ -209,15 +217,14 @@ func _do_steal_resources(from_city_id: String, to_city_id: String, level: int) -
 	if not target or not source:
 		return {"message": "شهر یافت نشد"}
 
-	var resources = target.get("resources", {})
-	var stolen_gold = int(resources.get(Globals.ResourceType.GOLD, 0.0) * 0.15 * (1.0 + level * 0.1))
+	var target_resources = target.get("resources", {})
+	var stolen_gold = int(target_resources.get(Globals.ResourceType.GOLD, 0.0) * 0.15 * (1.0 + level * 0.1))
 	stolen_gold = mini(stolen_gold, 500 + level * 100)
 
-	if stolen_gold > 0:
-		resources[Globals.ResourceType.GOLD] = max(0.0, resources.get(Globals.ResourceType.GOLD, 0.0) - stolen_gold)
-		source[Globals.ResourceType.GOLD] = source.get(Globals.ResourceType.GOLD, 0.0) + stolen_gold
-		EventBus.resource_changed.emit(from_city_id, str(Globals.ResourceType.GOLD), resources[Globals.ResourceType.GOLD], -stolen_gold)
-		EventBus.resource_changed.emit(to_city_id, str(Globals.ResourceType.GOLD), source[Globals.ResourceType.GOLD], stolen_gold)
+	if stolen_gold > 0 and not to_city_id.is_empty():
+		target_resources[Globals.ResourceType.GOLD] = max(0.0, target_resources.get(Globals.ResourceType.GOLD, 0.0) - stolen_gold)
+		EconomyManager.change_resource(to_city_id, Globals.ResourceType.GOLD, stolen_gold)
+		EventBus.resource_changed.emit(from_city_id, str(Globals.ResourceType.GOLD), target_resources[Globals.ResourceType.GOLD], -stolen_gold)
 
 	return {"message": "سرقت منابع موفق: %d طلا" % stolen_gold, "gold_stolen": stolen_gold}
 
@@ -261,6 +268,7 @@ func _do_incite_revolt(target_city_id: String, level: int) -> Dictionary:
 	var sat = target.get("satisfaction", 50.0)
 	var revolt_drop = 15.0 + level * 5.0
 	target["satisfaction"] = max(0.0, sat - revolt_drop)
+	EventBus.resource_changed.emit(target_city_id, str(Globals.ResourceType.SATISFACTION), target["satisfaction"], -revolt_drop)
 
 	return {"message": "شورش: رضایت %d واحد کاهش یافت" % revolt_drop, "satisfaction_drop": revolt_drop}
 
