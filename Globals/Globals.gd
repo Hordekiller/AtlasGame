@@ -115,7 +115,7 @@ const ISLAND_RESOURCE_NAMES: Dictionary = {
 	IslandResource.NONE: "ندارد"
 }
 
-const HAPPINESS_BASE_SATISFACTION: float = 50.0
+const HAPPINESS_BASE_SATISFACTION: float = 100.0
 const HAPPINESS_TAVERN_SAT_PER_LEVEL: float = 5.0
 const HAPPINESS_MUSEUM_SAT_PER_LEVEL: float = 3.0
 const HAPPINESS_TEMPLE_SAT_PER_LEVEL: float = 4.0
